@@ -1,7 +1,8 @@
-package schnitzel.NamingServer;
+package schnitzel.NamingServer.File;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.net.InetAddress;
 import java.util.List;
 
 @RestController
@@ -12,22 +13,26 @@ public class FileController {
         }
     }
 
-    // TODO private final AccountBalanceRepository repository;
-    FileController() {
+    static class InputFile {
 
+    }
+
+    private final FileRepository repository;
+    FileController(FileRepository repository) {
+        this.repository = repository;
     }
 
     // Query
     @GetMapping("/file")
-    List<FileMapping> query() {
-        return null; // TODO repository.findAll();
+    Iterable<Integer> query() {
+        return repository.findAll(); // TODO This is useless?
     }
 
     // Get Unique
-    @GetMapping("/file/{file_name}")
-    FileMapping get(@PathVariable String file_name) {
-        // TODO Look up file and location in mapping repository
-        return null;
+    @GetMapping("/file/{fileName}")
+    InetAddress get(@PathVariable String fileName) {
+        Integer fileHash = fileName.length(); // TODO, better hash
+        return repository.findByFileHash(fileHash);
     }
 
     // Create New
@@ -40,8 +45,8 @@ public class FileController {
     }
 
     // Delete
-    @DeleteMapping("/file/{file_name}")
-    void delete(@PathVariable String file_name) {
+    @DeleteMapping("/file/{fileName}")
+    void delete(@PathVariable String fileName) {
         // TODO Delete file from repository
     }
 }

@@ -1,9 +1,8 @@
-package schnitzel.NamingServer;
+package schnitzel.NamingServer.File;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 public class FileMapping {
