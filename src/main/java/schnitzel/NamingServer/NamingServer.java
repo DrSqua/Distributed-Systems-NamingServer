@@ -1,13 +1,11 @@
-package schnitzel.distributedsystems;
+package schnitzel.NamingServer;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DistributedSystemsApplication {
-
+public class NamingServer {
     public static void main(String[] args) {
-        SpringApplication.run(DistributedSystemsApplication.class, args);
+        SpringApplication.run(NamingServer.class, args);
     }
-
 }
