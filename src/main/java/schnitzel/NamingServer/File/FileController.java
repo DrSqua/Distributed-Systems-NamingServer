@@ -3,7 +3,6 @@ package schnitzel.NamingServer.File;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.InetAddress;
-import java.util.List;
 
 @RestController
 public class FileController {
@@ -24,13 +23,13 @@ public class FileController {
 
     // Query
     @GetMapping("/file")
-    Iterable<Integer> query() {
+    Iterable<FileMapping> query() {
         return repository.findAll(); // TODO This is useless?
     }
 
     // Get Unique
     @GetMapping("/file/{fileName}")
-    InetAddress get(@PathVariable String fileName) {
+    FileMapping get(@PathVariable String fileName) {
         Integer fileHash = fileName.length(); // TODO, better hash
         return repository.findByFileHash(fileHash);
     }
