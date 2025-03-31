@@ -33,7 +33,8 @@ public class FileController {
     // Get Unique
     @GetMapping("/file/{fileName}")
     FileMapping get(@PathVariable String fileName) {
-        Integer fileHash = (fileName.hashCode() + 2147483647) * (32768/2147483647 +2147483647);
+        final double max = 2147483647;
+        Integer fileHash = (int) ((fileName.hashCode() + max) * (32768/max + max));
         return repository.findByFileHash(fileHash);
     }
 
@@ -41,7 +42,8 @@ public class FileController {
     @PostMapping("/file")
     FileMapping newFile(@RequestBody InputFile newFile) {
         Integer IP_node = null; // TODO get nodes IP address
-        Integer fileHash = (newFile.hashCode() + 2147483647) * (32768/2147483647 + 2147483647);
+        final double max = 2147483647;
+        Integer fileHash = (int) ((newFile.hashCode() + max) * (32768/max + max));
         Map<Integer, Integer> map = FileMapping.loadMapFromJson();
         map.put(fileHash, IP_node);
         FileMapping.saveMapToJson(map);
@@ -52,7 +54,8 @@ public class FileController {
     @DeleteMapping("/file/{fileName}")
     void delete(@PathVariable String fileName) {
         Integer IP_node = null; // TODO get nodes IP address
-        Integer fileHash = (fileName.hashCode() + 2147483647) * (32768/2147483647 + 2147483647);
+        final double max = 2147483647;
+        Integer fileHash = (int) ((fileName.hashCode() + max) * (32768/max + max));
         Map<Integer, Integer> map = FileMapping.loadMapFromJson();
         map.remove(fileHash);
         FileMapping.saveMapToJson(map);
