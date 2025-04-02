@@ -1,8 +1,7 @@
 package schnitzel.distributedsystems;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.isA;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,12 +10,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import schnitzel.NamingServer.NamingServer;
+import schnitzel.NamingServer.NamingServerHash;
 import schnitzel.NamingServer.Node.NodeEntityIn;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import schnitzel.NamingServer.Node.NodeNameHash;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = NamingServer.class)
 @AutoConfigureMockMvc
@@ -38,7 +37,7 @@ public class TestNodeAPI {
         /*
          *  SETUP
          */
-        String NODE_NAME = "Boop";
+        String NODE_NAME = "postThenQuery";
         NodeEntityIn newNode = new NodeEntityIn(
                 NODE_NAME
         );
@@ -50,13 +49,47 @@ public class TestNodeAPI {
         this.mockMvc.perform(post("/node").contentType("application/json")
                 .content(jsonRequest))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nodeHash").value(NodeNameHash.hash(NODE_NAME))) // Validate the node name length
-                .andExpect(jsonPath("$.ipAddress").exists()); // Check if IP address exists;
+                .andExpect(content().string(String.valueOf(1)));
 
+        /*
+         * ASSERT
+         */
+        // First query Get
         this.mockMvc.perform(get("/node"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))  // Check that the list size is 1
-                .andExpect(jsonPath("$[0].nodeName").value(NODE_NAME))  // Check if the name matches
-        ;
+                .andExpect(jsonPath("$[0].nodeName").value(NODE_NAME));  // Check if the name matches
+
+        // Then resource Get
+        this.mockMvc.perform(get("/node/" + NODE_NAME))  // Via nodeName
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nodeName").value(NODE_NAME));  // Check if the name matches
+    }
+
+    @Test
+    void postThenDelete() throws Exception {
+        /*
+         *  SETUP
+         */
+        String NODE_NAME = "postThenDelete";
+        NodeEntityIn newNode = new NodeEntityIn(
+                NODE_NAME
+        );
+        String jsonRequest = objectMapper.writeValueAsString(newNode);
+
+        this.mockMvc.perform(post("/node").contentType("application/json")
+                        .content(jsonRequest))
+                        .andExpect(status().isOk());
+        /*
+         *  EXECUTE
+         */
+        this.mockMvc.perform(delete("/node/" + NODE_NAME)).andExpect(status().isOk());
+
+        /*
+         * ASSERT
+         */
+        // This should fail
+        this.mockMvc.perform(get("/node/" + NODE_NAME))  // Via nodeName
+                .andExpect(status().isNotFound());
     }
 }

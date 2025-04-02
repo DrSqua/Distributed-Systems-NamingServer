@@ -1,5 +1,7 @@
 package schnitzel.NamingServer.Node;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import schnitzel.NamingServer.NamingServerHash;
 
@@ -7,35 +9,50 @@ import java.util.Optional;
 
 @RestController
 public class NodeController {
-    private final static double max = 2147483647;
-
     private final NodeRepository repository;
     NodeController(NodeRepository repository) {
         this.repository = repository;
     }
 
+    @ResponseStatus(value = HttpStatus.NOT_FOUND)
+    public static class ResourceNotFoundException extends RuntimeException {
+        ResourceNotFoundException(String message) {
+            super(message);
+        }
+    }
+
     /**
      *
-     * @return List of NodeEntities which are Node-hash: Ip address mappings
+     * @param nodeIdentifier: Which is either a number (but as String type) or the nodeName to be hashed
+     * @return Hash either way
      */
-    @GetMapping("/node")
-    Iterable<NodeEntity> getNodes() {
-        return repository.findAll();
+    long parseIdentifier(String nodeIdentifier) {
+        try {
+            return Integer.parseInt(nodeIdentifier);
+        }  catch (NumberFormatException e) {
+            return NamingServerHash.hash(nodeIdentifier);
+        }
     }
 
     // Get Unique
     @GetMapping("/node/{nodeIdentifier}")
     NodeEntity get(@PathVariable String nodeIdentifier) {
-        try {
-            Long nodeHash = (long) Integer.parseInt(nodeIdentifier);
-            Optional<NodeEntity> nodeEntity = this.repository.findById(nodeHash);
-            if (nodeEntity.isPresent()) {
-                return nodeEntity.get();
-            } // Else throw Not Found?
-        } catch (NumberFormatException e) {
-            return null;
+        System.out.println(nodeIdentifier);
+        Long nodeHash = parseIdentifier(nodeIdentifier);
+        Optional<NodeEntity> nodeOpt = repository.findById(nodeHash);
+        if (nodeOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Node with hash " + nodeHash + " does not exist");
         }
-        return null;
+        return nodeOpt.get();
+    }
+
+    @DeleteMapping("/node/{nodeIdentifier}")
+    void delete(@PathVariable String nodeIdentifier) {
+        Long nodeHash = parseIdentifier(nodeIdentifier);
+        if (!repository.existsById(nodeHash)) {
+            throw new RuntimeException("Node with hash " + nodeHash + " already exists.");
+        }
+        this.repository.deleteById(nodeHash);
     }
 
     /**
@@ -43,7 +60,7 @@ public class NodeController {
      * @return Created Node-hash: Ip address mapping
      */
     @PostMapping("/node")
-    NodeEntity post(@RequestBody NodeEntityIn nodeEntityIn,
+    long post(@RequestBody NodeEntityIn nodeEntityIn,
                     HttpServletRequest request) {
         long nodeHash = NamingServerHash.hash(nodeEntityIn.nodeName);
 
@@ -57,7 +74,15 @@ public class NodeController {
                 nodeHash,
                 nodeEntityIn.nodeName
         );
+        this.repository.save(newNodeEntity);
+        return this.repository.count();
+    }
 
-        return this.repository.save(newNodeEntity);
+    /**
+     * @return List of NodeEntities which are Node-hash: Ip address mappings
+     */
+    @GetMapping("/node")
+    Iterable<NodeEntity> getNodes() {
+        return repository.findAll();
     }
 }
