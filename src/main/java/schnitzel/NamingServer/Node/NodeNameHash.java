@@ -3,9 +3,9 @@ package schnitzel.NamingServer.Node;
 public class NodeNameHash {
 
     public static Long hash(String nodeIdentifier) {
-        long max = 5;
-
-        double hashCode = nodeIdentifier.hashCode();
-        return (long) ((hashCode + max) * (32768/max + max));
+        long max = 2147483647;
+        long hashCode = nodeIdentifier.hashCode();
+        double helper = (double) 32768/max + max;
+        return (long) ((hashCode + max) * helper);
     }
 }
