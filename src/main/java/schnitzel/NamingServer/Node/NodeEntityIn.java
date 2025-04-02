@@ -8,5 +8,6 @@ public class NodeEntityIn {
 
     public NodeEntityIn(String nodeName) {
         this.nodeName = nodeName;
+
     }
 }
