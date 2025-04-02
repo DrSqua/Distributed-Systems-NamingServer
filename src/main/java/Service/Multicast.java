@@ -10,6 +10,14 @@ public class Multicast {
     private static InetAddress groupIP;
     private static int PORT;
     private static MulticastSocket socket;
+    private static String IP;
+
+    public Multicast(String IP, String groupIP, int port) throws IOException {
+        this.IP = IP;
+        this.groupIP = InetAddress.getByName(groupIP);
+        this.PORT = port;
+        this.socket = new MulticastSocket(this.PORT);
+    }
 
     public static InetAddress getGroupIP() {
         return groupIP;
@@ -35,19 +43,21 @@ public class Multicast {
         Multicast.socket = socket;
     }
 
-    public Multicast(String groupIP, int port) throws IOException {
-        this.groupIP = InetAddress.getByName(groupIP);
-        this.PORT = port;
-        this.socket = new MulticastSocket(this.PORT);
-    }
-
     public static void JoinMulticast() throws IOException {
         socket.joinGroup(groupIP);
     }
 
+    /// This send method is used to send a custom message
     public static void SendMulticast(String message) throws IOException {
         DatagramPacket sendMessage = new DatagramPacket(message.getBytes(), message.getBytes().length, groupIP, PORT);
         socket.send(sendMessage);
+    }
+
+    /// This send method is used to send the information (nodeName, nodeIP) during Bootstrap.
+    /// It sends the node name and IP seperated by IP.
+    public static void SendNodeInfo(String nodeName) throws IOException {
+        String message = nodeName+","+IP;
+        SendMulticast(message);
     }
 
     public static void ReceiveMulticast() throws IOException {
