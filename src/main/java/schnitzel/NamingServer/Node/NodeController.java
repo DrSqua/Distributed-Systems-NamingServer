@@ -1,10 +1,7 @@
 package schnitzel.NamingServer.Node;
-
-import com.fasterxml.jackson.databind.ser.std.InetAddressSerializer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.InetAddress;
 import java.util.Optional;
 
 @RestController
@@ -16,6 +13,10 @@ public class NodeController {
         this.repository = repository;
     }
 
+    /**
+     *
+     * @return List of NodeEntities which are Node-hash: Ip address mappings
+     */
     @GetMapping("/node")
     Iterable<NodeEntity> getNodes() {
         return repository.findAll();
@@ -26,7 +27,7 @@ public class NodeController {
     NodeEntity get(@PathVariable String nodeIdentifier) {
         try {
             Long nodeHash = (long) Integer.parseInt(nodeIdentifier);
-            Optional<NodeEntity> nodeEntity = this.repository.findByNodeHash(nodeHash);
+            Optional<NodeEntity> nodeEntity = this.repository.findById(nodeHash);
             if (nodeEntity.isPresent()) {
                 return nodeEntity.get();
             } // Else throw Not Found?
@@ -36,19 +37,26 @@ public class NodeController {
         return null;
     }
 
+    /**
+     * @param nodeEntityIn: The Node which wants to be added to the naming server
+     * @return Created Node-hash: Ip address mapping
+     */
     @PostMapping("/node")
     NodeEntity post(@RequestBody NodeEntityIn nodeEntityIn,
                     HttpServletRequest request) {
-        NodeEntity newNodeEntity = new NodeEntity(
-                request.getRemoteAddr(), hash(nodeEntityIn.nodeName)
-        );
-        NodeEntity savedNodeEntity = this.repository.save(newNodeEntity);
-        System.out.println(this.repository.findAll());
-        return savedNodeEntity;
-    }
+        long nodeHash = NodeNameHash.hash(nodeEntityIn.nodeName);
 
-    private Long hash(String nodeIdentifier) {
-        double hashCode = nodeIdentifier.hashCode();
-        return (long) ((hashCode + max) * (32768/max + max));
+        // Ensure uniqueness of nodeHash before saving
+        if (repository.existsById(nodeHash)) {
+            throw new RuntimeException("Node with hash " + nodeHash + " already exists.");
+        }
+
+        NodeEntity newNodeEntity = new NodeEntity(
+                request.getRemoteAddr(),
+                nodeHash,
+                nodeEntityIn.nodeName
+        );
+
+        return this.repository.save(newNodeEntity);
     }
 }

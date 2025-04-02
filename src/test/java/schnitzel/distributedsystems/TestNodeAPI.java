@@ -2,7 +2,6 @@ package schnitzel.distributedsystems;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -50,13 +49,13 @@ public class TestNodeAPI {
                 .content(jsonRequest))
                 // .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nodeNameLength").value(NODE_NAME.length())) // Validate the node name length
+                .andExpect(jsonPath("$.nodeHash").value(NODE_NAME.length())) // Validate the node name length
                 .andExpect(jsonPath("$.ipAddress").exists()); // Check if IP address exists;
 
         this.mockMvc.perform(get("/node"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))  // Check that the list size is 1
-                .andExpect(jsonPath("$[0].name").value(NODE_NAME))  // Check if the name matches
+                .andExpect(jsonPath("$[0].nodeName").value(NODE_NAME))  // Check if the name matches
                 // .andDo(print())
         ;
     }
