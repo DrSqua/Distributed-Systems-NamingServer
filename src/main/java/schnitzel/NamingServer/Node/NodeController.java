@@ -40,7 +40,7 @@ public class NodeController {
                     HttpServletRequest request) {
         NodeEntity newNodeEntity = new NodeEntity(
                 request.getRemoteAddr(),
-                (long) nodeEntityIn.nodeName.length()
+                (long) nodeEntityIn.nodeName.hashCode()
         );
         NodeEntity savedNodeEntity = this.repository.save(newNodeEntity);
         System.out.println(this.repository.findAll());
