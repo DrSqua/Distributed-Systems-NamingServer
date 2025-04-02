@@ -13,6 +13,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import schnitzel.NamingServer.NamingServer;
 import schnitzel.NamingServer.Node.NodeEntityIn;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import schnitzel.NamingServer.Node.NodeNameHash;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.hamcrest.Matchers.hasSize;
 
@@ -47,16 +49,14 @@ public class TestNodeAPI {
          */
         this.mockMvc.perform(post("/node").contentType("application/json")
                 .content(jsonRequest))
-                // .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nodeHash").value(NODE_NAME.length())) // Validate the node name length
+                .andExpect(jsonPath("$.nodeHash").value(NodeNameHash.hash(NODE_NAME))) // Validate the node name length
                 .andExpect(jsonPath("$.ipAddress").exists()); // Check if IP address exists;
 
         this.mockMvc.perform(get("/node"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))  // Check that the list size is 1
                 .andExpect(jsonPath("$[0].nodeName").value(NODE_NAME))  // Check if the name matches
-                // .andDo(print())
         ;
     }
 }

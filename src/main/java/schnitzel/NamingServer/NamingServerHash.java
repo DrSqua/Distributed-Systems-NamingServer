@@ -1,6 +1,6 @@
-package schnitzel.NamingServer.Node;
+package schnitzel.NamingServer;
 
-public class NodeNameHash {
+public class NamingServerHash {
 
     public static Long hash(String nodeIdentifier) {
         long max = 2147483647;
