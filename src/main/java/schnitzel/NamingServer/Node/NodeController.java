@@ -1,6 +1,7 @@
 package schnitzel.NamingServer.Node;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.util.Optional;
 
@@ -44,7 +45,7 @@ public class NodeController {
     @PostMapping("/node")
     NodeEntity post(@RequestBody NodeEntityIn nodeEntityIn,
                     HttpServletRequest request) {
-        long nodeHash = NodeNameHash.hash(nodeEntityIn.nodeName);
+        long nodeHash = NamingServerHash.hash(nodeEntityIn.nodeName);
 
         // Ensure uniqueness of nodeHash before saving
         if (repository.existsById(nodeHash)) {
