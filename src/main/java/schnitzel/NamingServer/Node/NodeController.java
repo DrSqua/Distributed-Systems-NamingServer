@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @RestController
 public class NodeController {
+    private final static double max = 2147483647;
 
     private final NodeRepository repository;
     NodeController(NodeRepository repository) {
@@ -39,11 +40,15 @@ public class NodeController {
     NodeEntity post(@RequestBody NodeEntityIn nodeEntityIn,
                     HttpServletRequest request) {
         NodeEntity newNodeEntity = new NodeEntity(
-                request.getRemoteAddr(),
-                (long) nodeEntityIn.nodeName.hashCode()
+                request.getRemoteAddr(), hash(nodeEntityIn.nodeName)
         );
         NodeEntity savedNodeEntity = this.repository.save(newNodeEntity);
         System.out.println(this.repository.findAll());
         return savedNodeEntity;
+    }
+
+    private Long hash(String nodeIdentifier) {
+        double hashCode = nodeIdentifier.hashCode();
+        return (long) ((hashCode + max) * (32768/max + max));
     }
 }
