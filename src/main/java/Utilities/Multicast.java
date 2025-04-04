@@ -59,9 +59,19 @@ public class Multicast {
         SendMulticast(message);
     }
 
-    public static void ReceiveMulticast() throws IOException {
-        byte[] buf = new byte[1024];
+    public static String ReceiveMulticast(int bufSize) throws IOException {
+        byte[] buf = new byte[bufSize];
         DatagramPacket receiveMessage = new DatagramPacket(buf, buf.length);
         socket.receive(receiveMessage);
+        while (true) {
+            // Receive the message
+            socket.receive(receiveMessage);
+            // Convert the byte array to a string
+            String message = new String(receiveMessage.getData(), 0, receiveMessage.getLength());
+
+            // Print the received message (node's name and IP)
+            System.out.println("Receiver: Received message: " + message);
+            return message;
+        }
     }
 }
