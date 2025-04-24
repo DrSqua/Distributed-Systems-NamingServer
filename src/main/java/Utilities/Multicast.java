@@ -50,6 +50,8 @@ public class Multicast {
     public static void SendMulticast(String message) throws IOException {
         DatagramPacket sendMessage = new DatagramPacket(message.getBytes(), message.getBytes().length, groupIP, PORT);
         socket.send(sendMessage);
+        System.out.println("Multicast sent to " + IP + ":" + PORT);
+
     }
 
     /// This send method is used to send the information (nodeName, nodeIP) during Bootstrap.
@@ -62,7 +64,6 @@ public class Multicast {
     public static String ReceiveMulticast(int bufSize) throws IOException {
         byte[] buf = new byte[bufSize];
         DatagramPacket receiveMessage = new DatagramPacket(buf, buf.length);
-        socket.receive(receiveMessage);
         while (true) {
             // Receive the message
             socket.receive(receiveMessage);
@@ -71,7 +72,9 @@ public class Multicast {
 
             // Print the received message (node's name and IP)
             System.out.println("Receiver: Received message: " + message);
-            return message;
+            if (receiveMessage.getLength() != 0) {
+                return message;
+            }
         }
     }
 }
