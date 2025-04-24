@@ -26,12 +26,10 @@ public class NamingServerBootstrap {
         multicast.JoinMulticast();
     }
 
-    public String[] receiveMessage(int bufSize) throws IOException {
+    public void receiveMessage(int bufSize) throws IOException {
         byte buf[] = new byte[bufSize];
         DatagramPacket receiveMessage = new DatagramPacket(buf, buf.length);
-        String message[] = multicast.ReceiveMulticast(bufSize).split(",");
-        storeNode(message);
-        return message;
+        multicast.ReceiveMulticast();
     }
 
     public void sendMessage(int numberOfNodes) throws IOException {

@@ -81,7 +81,7 @@ public class Multicast {
         SendMulticast(message);
     }
 
-    private void ReceiveMulticast() {
+    public void ReceiveMulticast() {
         try(MulticastSocket socket = new MulticastSocket(PORT)){
             InetAddress groupIP = InetAddress.getByName(this.groupIP);
             JoinMulticast();
@@ -91,9 +91,9 @@ public class Multicast {
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
                 String nodeName = message.split(",")[0];
+                String nodeIP = message.split(",")[1];
                 Long hash = NamingServerHash.hash(nodeName);
-                NodeEntity node = new NodeEntity(packet.getAddress().getHostAddress(),hash, nodeName);
-                //TODO: storage
+                NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
                 storage.put(hash,node);
             }
         } catch (IOException e){
