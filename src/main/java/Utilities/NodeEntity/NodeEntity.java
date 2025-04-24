@@ -1,4 +1,4 @@
-package schnitzel.NamingServer.Node;
+package Utilities.NodeEntity;
 
 public class NodeEntity {
     /*

@@ -9,7 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import schnitzel.NamingServer.NamingServer;
-import schnitzel.NamingServer.Node.NodeEntityIn;
+import Utilities.NodeEntity.NodeEntityIn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.hasSize;

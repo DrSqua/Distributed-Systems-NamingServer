@@ -1,4 +1,6 @@
 package schnitzel.NamingServer.Node;
+import Utilities.NodeEntity.NodeEntity;
+import Utilities.NodeEntity.NodeEntityIn;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
