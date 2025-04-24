@@ -1,7 +1,11 @@
 package NodeClient.RingAPI;
 
+import Utilities.NodeEntity.NodeEntity;
+import Utilities.NodeEntity.NodeEntityIn;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.util.Optional;
 
@@ -20,14 +24,21 @@ public class RingAPIController {
         }
     }
 
-    @PostMapping("/ring/{direction}/{nodeIdentifier}")
-    String set_neighbour(@PathVariable String direction, @PathVariable String nodeIdentifier) {
-        return ringStorage.setNodeIp(direction, nodeIdentifier);
+    @PostMapping("/ring/{direction}")
+    NodeEntity set_neighbour(@PathVariable String direction,
+                         @RequestBody NodeEntityIn nodeEntityIn,
+                         HttpServletRequest request) {
+        NodeEntity newNodeEntity = new NodeEntity(
+                request.getRemoteAddr(),
+                NamingServerHash.hash(nodeEntityIn.nodeName),
+                nodeEntityIn.nodeName
+        );
+        return ringStorage.setNode(direction, newNodeEntity);
     }
 
     @GetMapping("/ring/{direction}")
-    String get_neighbour(@PathVariable String direction) {
-        Optional<String> nodeOpt = ringStorage.getNodeIP(direction);
+    NodeEntity get_neighbour(@PathVariable String direction) {
+        Optional<NodeEntity> nodeOpt = ringStorage.getNode(direction);
         if (nodeOpt.isEmpty()) {
             throw new RingAPIController.ResourceNotFoundException("Direction " + direction + " is not set");
         }
