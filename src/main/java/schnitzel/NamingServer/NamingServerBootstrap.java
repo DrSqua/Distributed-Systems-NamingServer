@@ -1,6 +1,7 @@
 package schnitzel.NamingServer;
 import Utilities.Multicast;
 import schnitzel.NamingServer.Node.NodeEntity;
+import schnitzel.NamingServer.Node.NodeStorageService;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -11,14 +12,14 @@ public class NamingServerBootstrap {
     private String groupIP;
     private Multicast multicast;
 
-    private NodeRepository repository;
+    private NodeStorageService nodeStorageService;
 
-    public NamingServerBootstrap(String NamingServerIP, int port, String groupIP, NodeRepository repository) throws IOException {
+    public NamingServerBootstrap(String NamingServerIP, int port, String groupIP, NodeStorageService nodeStorageService) throws IOException {
         this.namingServerIP = NamingServerIP;
         this.port = port;
         this.groupIP = groupIP;
         this.multicast = new Multicast(namingServerIP,groupIP, port);
-        this.repository = repository;
+        this.nodeStorageService = nodeStorageService;
     }
 
     public void joinGroup() throws IOException {
@@ -48,7 +49,7 @@ public class NamingServerBootstrap {
                 hashCode,
                 name
         );
-        repository.save(newNodeEntity);
+        nodeStorageService.put(hashCode, newNodeEntity);
     }
 
     public static void main(String[] args) throws IOException {
