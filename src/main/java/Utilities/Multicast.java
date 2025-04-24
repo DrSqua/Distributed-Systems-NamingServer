@@ -1,29 +1,49 @@
 package Utilities;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Component;
+import schnitzel.NamingServer.NamingServerHash;
+import schnitzel.NamingServer.Node.NodeEntity;
+import schnitzel.NamingServer.Node.NodeStorageService;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+@Component
 public class Multicast {
-    private static InetAddress groupIP;
+    private static String groupIP;
     private static int PORT;
     private static MulticastSocket socket;
     private static String IP;
+    //TODO: storage
+    private final NodeStorageService storage;
 
     public Multicast(String IP, String groupIP, int port) throws IOException {
         this.IP = IP;
-        this.groupIP = InetAddress.getByName(groupIP);
+        this.groupIP = groupIP;
         this.PORT = port;
         this.socket = new MulticastSocket(this.PORT);
+        this.storage = new NodeStorageService();
+    }
+
+    @PostConstruct
+    public void start(){
+        new Thread(this::ReceiveMulticast).start();
     }
 
     public static InetAddress getGroupIP() {
-        return groupIP;
+        try {
+            return InetAddress.getByName(groupIP);
+        } catch (IOException e){
+            e.printStackTrace();
+            return InetAddress.getLoopbackAddress();
+        }
     }
 
-    public static void setGroupIP(InetAddress groupIP) {
-        Multicast.groupIP = groupIP;
+    public static void setGroupIP(String groupIP) {
+            Multicast.groupIP = groupIP;
     }
 
     public static int getPORT() {
@@ -43,12 +63,12 @@ public class Multicast {
     }
 
     public static void JoinMulticast() throws IOException {
-        socket.joinGroup(groupIP);
+        socket.joinGroup(InetAddress.getByName(groupIP));
     }
 
     /// This send method is used to send a custom message
     public static void SendMulticast(String message) throws IOException {
-        DatagramPacket sendMessage = new DatagramPacket(message.getBytes(), message.getBytes().length, groupIP, PORT);
+        DatagramPacket sendMessage = new DatagramPacket(message.getBytes(), message.getBytes().length, InetAddress.getByAddress(groupIP.getBytes()), PORT);
         socket.send(sendMessage);
         System.out.println("Multicast sent to " + IP + ":" + PORT);
 
@@ -61,20 +81,23 @@ public class Multicast {
         SendMulticast(message);
     }
 
-    public static String ReceiveMulticast(int bufSize) throws IOException {
-        byte[] buf = new byte[bufSize];
-        DatagramPacket receiveMessage = new DatagramPacket(buf, buf.length);
-        while (true) {
-            // Receive the message
-            socket.receive(receiveMessage);
-            // Convert the byte array to a string
-            String message = new String(receiveMessage.getData(), 0, receiveMessage.getLength());
-
-            // Print the received message (node's name and IP)
-            System.out.println("Receiver: Received message: " + message);
-            if (receiveMessage.getLength() != 0) {
-                return message;
+    private void ReceiveMulticast() {
+        try(MulticastSocket socket = new MulticastSocket(PORT)){
+            InetAddress groupIP = InetAddress.getByName(this.groupIP);
+            JoinMulticast();
+            byte[] buffer = new byte[1024];
+            while(true){
+                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                socket.receive(packet);
+                String message = new String(packet.getData(), 0, packet.getLength());
+                String nodeName = message.split(",")[0];
+                Long hash = NamingServerHash.hash(nodeName);
+                NodeEntity node = new NodeEntity(packet.getAddress().getHostAddress(),hash, nodeName);
+                //TODO: storage
+                storage.put(hash,node);
             }
+        } catch (IOException e){
+            e.printStackTrace();
         }
     }
 }
