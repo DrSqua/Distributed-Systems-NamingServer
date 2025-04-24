@@ -1,12 +1,9 @@
 package schnitzel.NamingServer;
 import Utilities.Multicast;
 import schnitzel.NamingServer.Node.NodeEntity;
-import schnitzel.NamingServer.Node.NodeRepository;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.util.HashMap;
-import java.util.Map;
 
 public class NamingServerBootstrap {
     private String namingServerIP;

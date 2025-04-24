@@ -1,14 +1,9 @@
 package schnitzel.NamingServer.Node;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-
-@Entity
 public class NodeEntity {
     /*
-     * Node Entity is the value in a Key-value pair of Hash and Ip Address
+     * Node Entity is the value in a Key-value pair of Hash and NodeEntity
      */
-    @Id
     private Long nodeHash;  // Hash of this name is used as key
 
     private String nodeName;

@@ -1,7 +1,6 @@
 package schnitzel.NamingServer.Node;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import schnitzel.NamingServer.NamingServerHash;
 
@@ -9,9 +8,9 @@ import java.util.Optional;
 
 @RestController
 public class NodeController {
-    private final NodeRepository repository;
-    NodeController(NodeRepository repository) {
-        this.repository = repository;
+    private final NodeStorageService nodeStorageService;
+    NodeController(NodeStorageService nodeStorageService) {
+        this.nodeStorageService = nodeStorageService;
     }
 
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
@@ -39,7 +38,7 @@ public class NodeController {
     NodeEntity get(@PathVariable String nodeIdentifier) {
         System.out.println(nodeIdentifier);
         Long nodeHash = parseIdentifier(nodeIdentifier);
-        Optional<NodeEntity> nodeOpt = repository.findById(nodeHash);
+        Optional<NodeEntity> nodeOpt = nodeStorageService.findById(nodeHash);
         if (nodeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Node with hash " + nodeHash + " does not exist");
         }
@@ -49,10 +48,10 @@ public class NodeController {
     @DeleteMapping("/node/{nodeIdentifier}")
     void delete(@PathVariable String nodeIdentifier) {
         Long nodeHash = parseIdentifier(nodeIdentifier);
-        if (!repository.existsById(nodeHash)) {
+        if (!nodeStorageService.existsById(nodeHash)) {
             throw new RuntimeException("Node with hash " + nodeHash + " already exists.");
         }
-        this.repository.deleteById(nodeHash);
+        this.nodeStorageService.deleteById(nodeHash);
     }
 
     /**
@@ -65,7 +64,7 @@ public class NodeController {
         long nodeHash = NamingServerHash.hash(nodeEntityIn.nodeName);
 
         // Ensure uniqueness of nodeHash before saving
-        if (repository.existsById(nodeHash)) {
+        if (nodeStorageService.existsById(nodeHash)) {
             throw new RuntimeException("Node with hash " + nodeHash + " already exists.");
         }
 
@@ -74,8 +73,8 @@ public class NodeController {
                 nodeHash,
                 nodeEntityIn.nodeName
         );
-        this.repository.save(newNodeEntity);
-        return this.repository.count();
+        this.nodeStorageService.put(nodeHash, newNodeEntity);
+        return this.nodeStorageService.count();
     }
 
     /**
@@ -83,6 +82,6 @@ public class NodeController {
      */
     @GetMapping("/node")
     Iterable<NodeEntity> getNodes() {
-        return repository.findAll();
+        return nodeStorageService.getAll();
     }
 }
