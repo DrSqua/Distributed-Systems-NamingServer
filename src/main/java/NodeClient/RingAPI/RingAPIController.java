@@ -1,11 +1,7 @@
 package NodeClient.RingAPI;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-import schnitzel.NamingServer.Node.NodeController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
@@ -24,12 +20,12 @@ public class RingAPIController {
         }
     }
 
-    @PostMapping("/{direction}/{nodeIdentifier}")
+    @PostMapping("/ring/{direction}/{nodeIdentifier}")
     String set_neighbour(@PathVariable String direction, @PathVariable String nodeIdentifier) {
         return ringStorage.setNodeIp(direction, nodeIdentifier);
     }
 
-    @PostMapping("/{direction}")
+    @GetMapping("/ring/{direction}")
     String get_neighbour(@PathVariable String direction) {
         Optional<String> nodeOpt = ringStorage.getNodeIP(direction);
         if (nodeOpt.isEmpty()) {

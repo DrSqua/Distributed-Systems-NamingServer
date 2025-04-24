@@ -1,6 +1,5 @@
-package schnitzel.distributedsystems;
+package schnitzel.distributedsystems.unittest.namingserver;
 
-import static org.hamcrest.Matchers.isA;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import schnitzel.NamingServer.NamingServer;
-import schnitzel.NamingServer.NamingServerHash;
 import schnitzel.NamingServer.Node.NodeEntityIn;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
