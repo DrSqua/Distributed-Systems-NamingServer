@@ -1,5 +1,6 @@
 package NodeClient.RingAPI;
 
+import Utilities.NodeEntity.NodeEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -7,13 +8,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RingStorage {
-    private final ConcurrentHashMap<String, String> dataMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, NodeEntity> dataMap = new ConcurrentHashMap<>();
 
-    public String setNodeIp(String direction, String ipAddress) {
-        return dataMap.put(direction, ipAddress);
+    public NodeEntity setNode(String direction, NodeEntity node) {
+        return dataMap.put(direction, node);
     }
 
-    public Optional<String> getNodeIP(String direction) {
+    public Optional<NodeEntity> getNode(String direction) {
         return Optional.ofNullable(dataMap.getOrDefault(direction, null));
     }
 }
