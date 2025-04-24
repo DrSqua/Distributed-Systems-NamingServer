@@ -1,4 +1,4 @@
-package schnitzel.NamingServer.Node;
+package Utilities.NodeEntity;
 
 public class NodeEntityIn {
     public String nodeName;  // Hash of this name is used as key

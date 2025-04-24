@@ -1,6 +1,7 @@
 package schnitzel.NamingServer.Node;
 
 
+import Utilities.NodeEntity.NodeEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;

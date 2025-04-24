@@ -1,6 +1,6 @@
 package schnitzel.NamingServer;
 import Utilities.Multicast;
-import schnitzel.NamingServer.Node.NodeEntity;
+import Utilities.NodeEntity.NodeEntity;
 import schnitzel.NamingServer.Node.NodeStorageService;
 
 import java.io.IOException;
