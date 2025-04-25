@@ -1,15 +1,19 @@
 package NodeClient;
 
 import Utilities.Multicast;
+import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
+@Component
 public class Bootstrap {
-    private static int nodeID = 0;
-    public static void main(String[] args) {
+    @PostConstruct
+    public static void notifyNetwork() {
         try {
             // Define the multicast group address and port (can be customized)
-            String clientIP = "192.168.43.11";
+            String clientIP = InetAddress.getLocalHost().getHostAddress();
             String groupIP = "224.0.0.1";
             int port = 4446;
 
@@ -32,10 +36,5 @@ public class Bootstrap {
             e.printStackTrace();
             System.err.println("Error during bootstrap: " + e.getMessage());
         }
-    }
-
-    public String genereteNodeName(){
-        nodeID++;
-        return nodeID+"node"+nodeID;
     }
 }

@@ -1,34 +1,24 @@
 package Utilities;
 
-import jakarta.annotation.PostConstruct;
-import org.springframework.stereotype.Component;
-import schnitzel.NamingServer.NamingServerHash;
-import Utilities.NodeEntity.NodeEntity;
-import schnitzel.NamingServer.Node.NodeStorageService;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.charset.StandardCharsets;
 
 public class Multicast {
-    private static String groupIP;
-    private static int PORT;
-    private static MulticastSocket socket;
-    private static String IP;
-    private final NodeStorageService storage;
+    private String groupIP;
+    private int port;
+    private MulticastSocket socket;
+    private final String IP;
 
     public Multicast(String IP, String groupIP, int port) throws IOException {
         this.IP = IP;
         this.groupIP = groupIP;
-        this.PORT = port;
-        this.socket = new MulticastSocket(this.PORT);
-        this.storage = new NodeStorageService();
+        this.port = port;
+        this.socket = new MulticastSocket(this.port);
     }
 
-    public static InetAddress getGroupIP() {
+    public  InetAddress getGroupIP() {
         try {
             return InetAddress.getByName(groupIP);
         } catch (IOException e){
@@ -37,41 +27,45 @@ public class Multicast {
         }
     }
 
-    public static void setGroupIP(String groupIP) {
-            Multicast.groupIP = groupIP;
+    public void setGroupIP(String groupIP) {
+        this.groupIP = groupIP;
     }
 
-    public static int getPORT() {
-        return PORT;
+    public  int getPORT() {
+        return port;
     }
 
-    public static void setPORT(int PORT) {
-        Multicast.PORT = PORT;
+    public  void setPORT(int port) {
+        this.port = port;
     }
 
-    public static MulticastSocket getSocket() {
+    public  MulticastSocket getSocket() {
         return socket;
     }
 
-    public static void setSocket(MulticastSocket socket) {
-        Multicast.socket = socket;
+    public  void setSocket(MulticastSocket socket) {
+        this.socket = socket;
     }
 
-    public static void JoinMulticast() throws IOException {
+    public void JoinMulticast() throws IOException {
         socket.joinGroup(InetAddress.getByName(groupIP));
     }
 
     /// This send method is used to send a custom message
-    public static void SendMulticast(String message) throws IOException {
-        DatagramPacket sendMessage = new DatagramPacket(message.getBytes(), message.getBytes().length, InetAddress.getByAddress(groupIP.getBytes()), PORT);
+    public void SendMulticast(String message) throws IOException {
+        DatagramPacket sendMessage = new DatagramPacket(
+                message.getBytes(),
+                message.getBytes().length,
+                InetAddress.getByAddress(groupIP.getBytes()), port
+        );
         socket.send(sendMessage);
-        System.out.println("Multicast sent to " + IP + ":" + PORT);
+        System.out.println("Multicast sent to " + IP + ":" + port);
 
     }
 
     /// This send method is used to send the information (nodeName, nodeIP) during Bootstrap.
     /// It sends the node name and IP seperated by IP.
-    public static void SendNodeInfo(String nodeName) throws IOException {
+    public void SendNodeInfo(String nodeName) throws IOException {
         String message = nodeName+","+IP;
         SendMulticast(message);
     }
