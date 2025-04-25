@@ -13,7 +13,6 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.charset.StandardCharsets;
 
-@Component
 public class Multicast {
     private static String groupIP;
     private static int PORT;
@@ -27,11 +26,6 @@ public class Multicast {
         this.PORT = port;
         this.socket = new MulticastSocket(this.PORT);
         this.storage = new NodeStorageService();
-    }
-
-    @PostConstruct
-    public void start(){
-        new Thread(this::ReceiveMulticast).start();
     }
 
     public static InetAddress getGroupIP() {
@@ -80,36 +74,5 @@ public class Multicast {
     public static void SendNodeInfo(String nodeName) throws IOException {
         String message = nodeName+","+IP;
         SendMulticast(message);
-    }
-
-    public void ReceiveMulticast() {
-        try(MulticastSocket socket = new MulticastSocket(PORT)){
-            InetAddress groupIP = InetAddress.getByName(this.groupIP);
-            JoinMulticast();
-            byte[] buffer = new byte[1024];
-            while(true){
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet);
-                String message = new String(packet.getData(), 0, packet.getLength());
-                String nodeName = message.split(",")[0];
-                String nodeIP = message.split(",")[1];
-                Long hash = NamingServerHash.hash(nodeName);
-                NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
-                storage.put(hash,node);
-                /*
-                 *  Now the namingServer will respond. By sending the number of existing nodes to the new node.
-                 *  We made this a multicast, because this number needs to be updated by all nodes (otherwise
-                 *  they will have an incorrect number).
-                 */
-                String response = String.valueOf(storage.count());
-                byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-                DatagramSocket responseSocket = new DatagramSocket();
-                DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
-                responseSocket.send(responsePacket);
-                responseSocket.close();
-            }
-        } catch (IOException e){
-            e.printStackTrace();
-        }
     }
 }
