@@ -1,4 +1,4 @@
-package NodeClient;
+package NodeClient.Components;
 
 import Utilities.Multicast;
 import jakarta.annotation.PostConstruct;
@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 @Component
-public class Bootstrap {
+public class OnStartupBean {
     @PostConstruct
     public static void notifyNetwork() {
         try {
