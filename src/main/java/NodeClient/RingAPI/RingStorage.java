@@ -2,6 +2,7 @@ package NodeClient.RingAPI;
 
 import Utilities.NodeEntity.NodeEntity;
 import org.springframework.stereotype.Service;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,5 +17,9 @@ public class RingStorage {
 
     public Optional<NodeEntity> getNode(String direction) {
         return Optional.ofNullable(dataMap.getOrDefault(direction, null));
+    }
+
+    public Long currentHash() {
+        return NamingServerHash.hash(System.getProperty("user.name"));
     }
 }
