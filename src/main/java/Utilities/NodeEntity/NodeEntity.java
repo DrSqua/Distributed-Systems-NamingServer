@@ -33,6 +33,10 @@ public class NodeEntity {
                 '}';
     }
 
+    public NodeEntityIn asEntityIn() {
+        return new NodeEntityIn(ipAddress);
+    }
+
     public String getNodeName() {
         return nodeName;
     }

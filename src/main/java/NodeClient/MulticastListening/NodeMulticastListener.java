@@ -2,6 +2,7 @@ package NodeClient.MulticastListening;
 
 import NodeClient.RingAPI.RingStorage;
 import Utilities.NodeEntity.NodeEntity;
+import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
@@ -33,23 +34,17 @@ public class NodeMulticastListener {
         );
         /*
          * If currentID< hash < nextID, nexID= hash, current node updates its own parameter nextID,
-         * and sends response to node giving the information on currentIDand nextID
+         * and sends response to node giving the information on currentID and nextID
          *
          * If previousID< hash < currentID, previousID= hash, current node updates its own parameter previousID,
          * and sends response to node giving the information on currentIDand previousID
          */
         if (this.ringStorage.currentHash() < hashedNodeName && hashedNodeName < nextNode.hashCode()) {
             this.ringStorage.setNode("NEXT", receivedNode);
-
-            // TODO
-            // Send which neighbours the other node has
-
+            RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode.asEntityIn());
         } else if (previousNode.hashCode() < hashedNodeName && hashedNodeName < this.ringStorage.currentHash()) {
             this.ringStorage.setNode("PREVIOUS", receivedNode);
-
-            // TODO
-            // Send which neighbours the other node has
-
+            RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
         } else {
             throw new IllegalStateException("Unexpected state");
         }
