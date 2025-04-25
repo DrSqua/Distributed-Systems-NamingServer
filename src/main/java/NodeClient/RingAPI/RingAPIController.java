@@ -44,4 +44,24 @@ public class RingAPIController {
         }
         return nodeOpt.get();
     }
+    // Used for health checks (ping endpoint)
+    @GetMapping("/node/internal/status")
+    public String getStatus() {
+        return "OK";
+    }
+
+    // Endpoint to update the next node from outside
+    @PostMapping("/node/internal/updateNext")
+    public void updateNext(@RequestBody NodeEntity newNext) {
+        ringStorage.setNode("next", newNext);
+        System.out.println("Updated next node to: " + newNext);
+    }
+
+    // Endpoint to update the previous node from outside
+    @PostMapping("/node/internal/updatePrevious")
+    public void updatePrevious(@RequestBody NodeEntity newPrevious) {
+        ringStorage.setNode("previous", newPrevious);
+        System.out.println("Updated previous node to: " + newPrevious);
+    }
+
 }
