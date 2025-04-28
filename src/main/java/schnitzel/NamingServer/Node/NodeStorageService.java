@@ -4,6 +4,9 @@ package schnitzel.NamingServer.Node;
 import Utilities.NodeEntity.NodeEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,6 +36,12 @@ public class NodeStorageService {
 
     public Iterable<NodeEntity> getAll() {
         return dataMap.values();
+    }
+
+    public ArrayList<Long> keys() {
+        // Enumeration is a legacy implementation
+        // We cast to iterator
+        return Collections.list(dataMap.keys());
     }
 
     public int count() {

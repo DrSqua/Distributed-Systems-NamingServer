@@ -1,63 +1,40 @@
 package schnitzel.NamingServer.File;
 
-import org.springframework.web.bind.annotation.*;
-
-import java.net.InetAddress;
-import java.util.Map;
+import Utilities.NodeEntity.NodeEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import schnitzel.NamingServer.NamingServerHash;
+import schnitzel.NamingServer.Node.NodeStorageService;
 
 import static java.lang.Math.abs;
 
 @RestController
 public class FileController {
-    static class FileNotFoundException extends RuntimeException {
-        FileNotFoundException(long fileName) {
-            super("Could not find file with name:  " + fileName);
-        }
+    private final NodeStorageService nodeStorageService;
+    FileController(NodeStorageService nodeStorageService) {
+        this.nodeStorageService = nodeStorageService;
     }
 
-    static class InputFile {
-
-    }
-
-    private final FileRepository repository;
-    FileController(FileRepository repository) {
-        this.repository = repository;
-    }
-
-    // Query
-    @GetMapping("/file")
-    Iterable<FileMapping> query() {
-        return repository.findAll(); // TODO This is useless?
-    }
-
-    // Get Unique
+    /**
+     * @param fileName: Name of the file which the CLIENT is looking for
+     * @return ip address of Node where the file is located
+     */
     @GetMapping("/file/{fileName}")
-    FileMapping get(@PathVariable String fileName) {
-        final double max = 2147483647;
-        Integer fileHash = (int) ((fileName.hashCode() + max) * (32768/max + max));
-        return repository.findByFileHash(fileHash);
-    }
+    String getFilenameLocation(@PathVariable String fileName) {
+        long filenameHash = NamingServerHash.hash(fileName);
 
-    // Create New
-    @PostMapping("/file")
-    FileMapping newFile(@RequestBody InputFile newFile) {
-        Integer IP_node = null; // TODO get nodes IP address
-        final double max = 2147483647;
-        Integer fileHash = (int) ((newFile.hashCode() + max) * (32768/max + max));
-        Map<Integer, Integer> map = FileMapping.loadMapFromJson();
-        map.put(fileHash, IP_node);
-        FileMapping.saveMapToJson(map);
-        return null;
-    }
+        // We set max hash as default
+        // As per project requirements
+        long locatedNodeHash = this.nodeStorageService.keys().stream().max(Long::compare).orElseThrow();
 
-    // Delete
-    @DeleteMapping("/file/{fileName}")
-    void delete(@PathVariable String fileName) {
-        Integer IP_node = null; // TODO get nodes IP address
-        final double max = 2147483647;
-        Integer fileHash = (int) ((fileName.hashCode() + max) * (32768/max + max));
-        Map<Integer, Integer> map = FileMapping.loadMapFromJson();
-        map.remove(fileHash);
-        FileMapping.saveMapToJson(map);
+        // Iterate all keys, calculate difference between node hash and filename hash
+        for (Long key: this.nodeStorageService.keys()) {
+            if ((abs(key - filenameHash)) < abs(locatedNodeHash - filenameHash)) {
+                locatedNodeHash = key;
+            }
+        }
+        NodeEntity locatedNode = this.nodeStorageService.findById(locatedNodeHash).orElseThrow();
+        return locatedNode.getIpAddress();
     }
 }
