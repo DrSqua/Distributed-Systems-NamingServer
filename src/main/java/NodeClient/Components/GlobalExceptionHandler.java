@@ -3,19 +3,23 @@ package NodeClient.Components;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
-import jakarta.annotation.PreDestroy;
-import org.springframework.stereotype.Component;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
-@Component
-public class OnShutdownBean {
+// Global exception handler
+@ControllerAdvice
+class GlobalExceptionHandler {
     private final RingStorage ringStorage;
 
-    public OnShutdownBean(RingStorage ringStorage) {
+    public GlobalExceptionHandler(RingStorage ringStorage) {
         this.ringStorage = ringStorage;
     }
 
-    @PreDestroy
-    public void destroy() {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) throws Exception {
+
+        // Notify neighbours that they are now eachother neighbours
         NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
                 new IllegalStateException("Existing Node does not have next set")
         );
@@ -23,6 +27,10 @@ public class OnShutdownBean {
                 new IllegalStateException("Existing Node does not have previous set")
         );
 
+        // Perform shutdown code
         RestMessagesRepository.removingSelfFromSystem(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP(), previousNode, nextNode);
+
+        // Continue throwing error
+        throw e;
     }
 }

@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RingStorage {
     private final ConcurrentHashMap<String, NodeEntity> dataMap = new ConcurrentHashMap<>();
 
+    private String namingServerIP;
+
     public NodeEntity setNode(String direction, NodeEntity node) {
         return dataMap.put(direction, node);
     }
@@ -19,7 +21,19 @@ public class RingStorage {
         return Optional.ofNullable(dataMap.getOrDefault(direction, null));
     }
 
+    public String currentName() {
+        return System.getProperty("user.name");
+    }
+
     public Long currentHash() {
-        return NamingServerHash.hash(System.getProperty("user.name"));
+        return NamingServerHash.hash(this.currentName());
+    }
+
+    public String getNamingServerIP() {
+        return namingServerIP;
+    }
+
+    public void setNamingServerIP(String namingServerIP) {
+        this.namingServerIP = namingServerIP;
     }
 }
