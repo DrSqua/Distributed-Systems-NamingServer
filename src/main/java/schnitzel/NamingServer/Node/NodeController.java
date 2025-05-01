@@ -38,7 +38,6 @@ public class NodeController {
     // Get Unique
     @GetMapping("/node/{nodeIdentifier}")
     NodeEntity get(@PathVariable String nodeIdentifier) {
-        System.out.println(nodeIdentifier);
         Long nodeHash = parseIdentifier(nodeIdentifier);
         Optional<NodeEntity> nodeOpt = nodeStorageService.findById(nodeHash);
         if (nodeOpt.isEmpty()) {
