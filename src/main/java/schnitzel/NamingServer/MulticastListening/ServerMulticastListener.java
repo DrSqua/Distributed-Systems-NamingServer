@@ -22,7 +22,7 @@ public class ServerMulticastListener {
     private final String groupIP;
     private final int PORT;
     private final String IP;
-    private final Multicast multicast;
+    public final Multicast multicast;
 
     public ServerMulticastListener(NodeStorageService storage) throws IOException {
         this.storage = storage;

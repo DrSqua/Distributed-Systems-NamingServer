@@ -1,4 +1,10 @@
 package Utilities.NodeEntity;
+import org.springframework.stereotype.Component;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.io.File;
+
 
 public class NodeEntity {
     /*
@@ -8,6 +14,9 @@ public class NodeEntity {
 
     private String nodeName;
     private String ipAddress;
+    Path path = Paths.get("").toAbsolutePath().normalize();
+    private Path filePathLocal =path.resolve("local_files");
+    private Path filePathReplica = path.resolve("replica_files");
 
     public NodeEntity(String ipAddress, Long nodeHash, String nodeName) {
         this.ipAddress = ipAddress;
