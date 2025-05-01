@@ -2,14 +2,18 @@ package Utilities;
 
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.NodeEntity.NodeEntityIn;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.web.client.RestTemplate;
 
 public class RestMessagesRepository {
+    @Value("${multicast.port}")
+    private static int PORT;
+
     public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) {
         RestTemplate restTemplate = new RestTemplate();
         try {
-            String url = "http://" + neighbour.getIpAddress() + ":8080/node/ring/" + direction;
+            String url = "http://" + neighbour.getIpAddress() + ":"+PORT+"/ring/" + direction;
             HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
             restTemplate.postForEntity(url, request, Void.class);
         } catch (Exception e) {
@@ -20,7 +24,7 @@ public class RestMessagesRepository {
     public static void removeFromNamingServer(String nodeName, String namingServerIP) {
         RestTemplate restTemplate = new RestTemplate();
         try {
-            String url = "http://" + namingServerIP + ":8080/node/" + nodeName;
+            String url = "http://" + namingServerIP + ":"+PORT+"/node/" + nodeName;
             HttpEntity<String> request = new HttpEntity<>(null);
             restTemplate.delete(url, request, Void.class);
         } catch (Exception e) {

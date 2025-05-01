@@ -3,6 +3,7 @@ package NodeClient.Components;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -17,13 +18,17 @@ public class OnStartupBean {
         this.ringStorage = ringStorage;
     }
 
+    @Value("${multicast.port}")
+    private int port;
+
+    @Value("${multicast.groupIP}")
+    private String groupIP;
+
     @PostConstruct
     public void notifyNetwork() {
         try {
             // Define the multicast group address and port (can be customized)
             String clientIP = InetAddress.getLocalHost().getHostAddress();
-            String groupIP = "224.0.0.1";
-            int port = 4446;
 
             // Initialize the Multicast object
             Multicast multicast = new Multicast(clientIP,groupIP, port);

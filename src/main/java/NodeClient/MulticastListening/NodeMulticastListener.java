@@ -5,6 +5,7 @@ import Utilities.Multicast;
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import schnitzel.NamingServer.NamingServerHash;
 
@@ -17,22 +18,27 @@ import java.net.MulticastSocket;
 @Component
 public class NodeMulticastListener {
     private final RingStorage ringStorage;
-    private final String groupIP;
-    private final int PORT;
     private final String IP;
-    private final Multicast multicast;
+    private Multicast multicast;
+    @Value("${multicast.port}")
+    private int PORT;
+
+    @Value("${multicast.groupIP}")
+    private String groupIP;
 
     public NodeMulticastListener(RingStorage ringStorage) throws IOException {
         this.ringStorage = ringStorage;
-        this.groupIP = "224.0.0.1";
         this.IP = InetAddress.getLocalHost().getHostAddress();
-        this.PORT = 4446;
-        this.multicast = new Multicast(IP,groupIP,PORT);
     }
 
     @PostConstruct
     public void start() {
-        new Thread(this::listen).start();
+        try{
+            this.multicast = new Multicast(IP,groupIP,PORT);
+            new Thread(this::listen).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void listen() {

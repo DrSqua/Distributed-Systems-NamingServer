@@ -1,9 +1,7 @@
 package Utilities;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 
 public class Multicast {
     private String groupIP;
@@ -18,7 +16,7 @@ public class Multicast {
         this.socket = new MulticastSocket(this.port);
     }
 
-    public  InetAddress getGroupIP() {
+    public InetAddress getGroupIP() {
         try {
             return InetAddress.getByName(groupIP);
         } catch (IOException e){
@@ -48,7 +46,13 @@ public class Multicast {
     }
 
     public void JoinMulticast() throws IOException {
-        socket.joinGroup(InetAddress.getByName(groupIP));
+//        System.out.println("Joining Multicast: "+InetAddress.getByName(groupIP));
+//        socket.joinGroup(InetAddress.getByName(groupIP));
+        InetAddress group = InetAddress.getByName(groupIP);
+        NetworkInterface networkInterface = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
+        System.out.println("Joining Multicast: "+group+", port: "+port+", network interface: "+networkInterface);
+        socket.joinGroup(new InetSocketAddress(group, port), networkInterface);
+
     }
 
     /// This send method is used to send a custom message
@@ -56,7 +60,7 @@ public class Multicast {
         DatagramPacket sendMessage = new DatagramPacket(
                 message.getBytes(),
                 message.getBytes().length,
-                InetAddress.getByAddress(groupIP.getBytes()), port
+                InetAddress.getByName(groupIP), port
         );
         socket.send(sendMessage);
         System.out.println("Multicast sent to " + IP + ":" + port);

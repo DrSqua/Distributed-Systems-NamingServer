@@ -26,11 +26,11 @@ public class FileCheckerBean {
         new Thread(this::checkFiles).start();
     }
     private void checkFiles() {
-        for (File localFile : filePathLocal.toFile().listFiles()) {
-            if (localFile.isFile()) {
-                localFileList.add(localFile.getName());
-            }
-        }
+//        for (File localFile : filePathLocal.toFile().listFiles()) {
+//            if (localFile.isFile()) {
+//                localFileList.add(localFile.getName());
+//            }
+//        }
 
     }
 }
