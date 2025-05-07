@@ -1,41 +1,39 @@
 package NodeClient.File;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
 @RestController
 @RequestMapping("/node/file")
 public class FileController {
-    private final Path localPath = Paths.get("").toAbsolutePath().normalize().resolve("local_files");
+    private final FileService fileService;
 
-    public FileController() throws IOException {
-        Files.createDirectories(localPath);
-    }
-
-    @PostMapping("/create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createFile(@RequestParam String name) throws IOException {
-        Path target = localPath.resolve(name);
-        Files.createFile(target);
+    @Autowired
+    public FileController(FileService fileService) throws IOException {
+       this.fileService = fileService;
     }
 
     @PostMapping("/upload")
     @ResponseStatus(HttpStatus.CREATED)
     public void uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-        Path targetPath = localPath.resolve(file.getOriginalFilename());
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        fileService.storeFile(file);
+        fileService.replicateToNeighbors(file.getOriginalFilename(), file.getBytes(), "CREATE");
     }
 
     @DeleteMapping("/{name}")
     public void deleteFile(@PathVariable String name) throws IOException {
-        Path targetPath = localPath.resolve(name);
-        Files.deleteIfExists(targetPath);
+        fileService.deleteFile(name);
+        fileService.replicateToNeighbors(name, null, "DELETE");
     }
+
+    @PostMapping("/replication")
+    public void handleReplication(@RequestBody ReplicationMessage message) throws IOException {
+        fileService.handleReplication(message);
+    }
+
+
 }
