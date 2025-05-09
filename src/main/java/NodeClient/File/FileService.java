@@ -1,6 +1,8 @@
 package NodeClient.File;
 
 import NodeClient.RingAPI.RingStorage;
+
+import Utilities.NodeEntity.NodeEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,14 +38,13 @@ public class FileService {
     }
 
     public void handleReplication(ReplicationMessage message) throws IOException {
-        Path filePath = localPath.resolve(message.getFileName());
-        switch (message.getOperation()) {
+        Path filePath = localPath.resolve(message.fileName());
+        switch (message.operation()) {
             case "CREATE":
-                Files.write(filePath, message.getFileData(), StandardOpenOption.CREATE);
+                Files.write(filePath, message.fileData(), StandardOpenOption.CREATE);
                 break;
             case "DELETE":
                 Files.deleteIfExists(filePath);
-                // TODO delete the replicated files as well
                 break;
             case "SHUTDOWN":
                 // TODO handle transfer files if needed
@@ -51,19 +52,24 @@ public class FileService {
         }
     }
 
-    public void replicateToNeighbors(String fileName, byte[] data, String operation) {
+    public void replicateToNeighbors(String fileName, String operation, byte[] data) {
         ReplicationMessage message = new ReplicationMessage(fileName, operation, data);
         try {
-            if (ringStorage.getNode("NEXT").isPresent()) {
-                String nextIpAddress = ringStorage.getNode("NEXT").get().getIpAddress();
-                // This will send a Post request to the next node, so it can replicate the file
-                new RestTemplate().postForObject("http://" + nextIpAddress + ":" + serverPort + "/node/file/replication", message, Void.class);
-            }
-            if (ringStorage.getNode("PREVIOUS").isPresent()) {
-                String previousIpAddress = ringStorage.getNode("PREVIOUS").get().getIpAddress();
-                // This will send a Post request to the previous node, so it can replicate the file
-                new RestTemplate().postForObject("http://" + previousIpAddress + ":" + serverPort + "/node/file/replication", message, Void.class);
-            }
+            // Getting next node and its IP
+            NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
+                    new IllegalStateException("Existing Node does not have next set")
+            );
+            String nextIpAddress = nextNode.getIpAddress();
+            // Send a Post request to next node for file replication
+            new RestTemplate().postForObject("http://" + nextIpAddress + ":" + serverPort + "/node/file/replication", message, Void.class);
+
+            // Getting previous node and its IP
+            NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
+                    new IllegalStateException("Existing Node does not have previous set")
+            );
+            String previousIpAddress = previousNode.getIpAddress();
+            // Send a Post request to previous node for file replication
+            new RestTemplate().postForObject("http://" + previousIpAddress + ":" + serverPort + "/node/file/replication", message, Void.class);
         } catch (Exception e) {
             e.printStackTrace();
         }

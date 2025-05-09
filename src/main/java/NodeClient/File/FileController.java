@@ -21,19 +21,17 @@ public class FileController {
     @ResponseStatus(HttpStatus.CREATED)
     public void uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         fileService.storeFile(file);
-        fileService.replicateToNeighbors(file.getOriginalFilename(), file.getBytes(), "CREATE");
+        fileService.replicateToNeighbors(file.getOriginalFilename(), "CREATE", file.getBytes());
     }
 
     @DeleteMapping("/{name}")
     public void deleteFile(@PathVariable String name) throws IOException {
         fileService.deleteFile(name);
-        fileService.replicateToNeighbors(name, null, "DELETE");
+        fileService.replicateToNeighbors(name, "DELETE", null);
     }
 
     @PostMapping("/replication")
     public void handleReplication(@RequestBody ReplicationMessage message) throws IOException {
         fileService.handleReplication(message);
     }
-
-
 }

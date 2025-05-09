@@ -1,26 +1,5 @@
 package NodeClient.File;
 
-public class ReplicationMessage {
-    private String fileName;
-    private String operation;
-    private byte[] fileData;
-
-    public ReplicationMessage(String fileName, String operation, byte[] fileData) {
-        this.fileName = fileName;
-        this.operation = operation;
-        this.fileData = fileData;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public String getOperation() {
-        return operation;
-    }
-
-    public byte[] getFileData() {
-        return fileData;
-    }
+// record class to store data for the file and which operation we want to perform on it
+public record ReplicationMessage(String fileName, String operation, byte[] fileData) {
 }
-

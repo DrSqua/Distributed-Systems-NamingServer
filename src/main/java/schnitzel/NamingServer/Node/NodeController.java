@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import schnitzel.NamingServer.NamingServerHash;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -85,4 +86,14 @@ public class NodeController {
     Iterable<NodeEntity> getNodes() {
         return nodeStorageService.getAll();
     }
+
+    /**
+     * @param fileHash: All the hash values of the files that needs to be replicated
+     * @return Informs originating node
+     */
+    /*@GetMapping("/node/replication")
+    public String startupReplication(@RequestParam long fileHash, @RequestParam long nodeHash) {
+        // TODO check if fileHash > nodeHash
+        return "REPLICATE";
+    }*/
 }
