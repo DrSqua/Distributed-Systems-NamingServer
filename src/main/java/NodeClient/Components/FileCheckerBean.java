@@ -54,24 +54,27 @@ public class FileCheckerBean {
 
     private void verifyAndReportFiles() {
         File[] files = filePathLocal.toFile().listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile()) {
-                    String fileName = file.getName();
-                    long fileHash = NamingServerHash.hash(fileName);
-                    try {
-                        String parameters = "fileHash=" + fileHash + "&nodeName=" + ringStorage.currentHash();
-                        String url = "http://" + ringStorage.getNamingServerIP() + ":" + serverPort + "/node/replication?" + parameters;
-                        String response = new RestTemplate().getForObject(url, String.class);
-                        if ("REPLICATE".equalsIgnoreCase(response)) {
-                            byte[] data = Files.readAllBytes(file.toPath());
-                            fileService.replicateToNeighbors(fileName, "CREATE", data);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+        // Guard clause
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isFile()) {
+                String fileName = file.getName();
+                long fileHash = NamingServerHash.hash(fileName);
+                try {
+                    String parameters = "fileHash=" + fileHash + "&nodeName=" + ringStorage.currentHash();
+                    String url = "http://" + ringStorage.getNamingServerIP() + ":" + serverPort + "/node/replication?" + parameters;
+                    String response = new RestTemplate().getForObject(url, String.class);
+                    if ("REPLICATE".equalsIgnoreCase(response)) {
+                        byte[] data = Files.readAllBytes(file.toPath());
+                        fileService.replicateToNeighbors(fileName, "CREATE", data);
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
+
         }
     }
 
@@ -80,15 +83,17 @@ public class FileCheckerBean {
         while (true) {
             try {
                 File[] files = filePathLocal.toFile().listFiles();
-                if (files != null) {
-                    for (File localFile : files) {
-                        if (localFile.isFile()) {
-                            String fileName = localFile.getName();
-                            long fileHash = NamingServerHash.hash(fileName);
-                            if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
-                                knownFiles.put(fileName, fileHash);
-                                fileService.replicateToNeighbors(fileName, "CREATE", Files.readAllBytes(localFile.toPath()));
-                            }
+                // Guard clause
+                if (files == null) {
+                    return;
+                }
+                for (File localFile : files) {
+                    if (localFile.isFile()) {
+                        String fileName = localFile.getName();
+                        long fileHash = NamingServerHash.hash(fileName);
+                        if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
+                            knownFiles.put(fileName, fileHash);
+                            fileService.replicateToNeighbors(fileName, "CREATE", Files.readAllBytes(localFile.toPath()));
                         }
                     }
                 }

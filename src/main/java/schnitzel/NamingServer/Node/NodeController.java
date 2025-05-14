@@ -6,12 +6,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import schnitzel.NamingServer.NamingServerHash;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class NodeController {
     private final NodeStorageService nodeStorageService;
+    private final ConcurrentHashMap<Long, NodeEntity> fileRegistry = new ConcurrentHashMap<>();
     NodeController(NodeStorageService nodeStorageService) {
         this.nodeStorageService = nodeStorageService;
     }
@@ -88,12 +91,33 @@ public class NodeController {
     }
 
     /**
-     * @param fileHash: All the hash values of the files that needs to be replicated
-     * @return Informs originating node
+     * @param fileHash: Hash value of the file
+     * @param nodeHash: Hash value of the originating node
+     * @return Informs originating node that he needs to replicate or ignore the file
      */
-    /*@GetMapping("/node/replication")
-    public String startupReplication(@RequestParam long fileHash, @RequestParam long nodeHash) {
-        // TODO check if fileHash > nodeHash
-        return "REPLICATE";
-    }*/
+    @GetMapping("/node/replication")
+    public String checkReplicationResponsibility(@RequestParam long fileHash, @RequestParam long nodeHash) {
+        NodeEntity responsibleNode = findResponsibleNode(fileHash);
+
+        if (responsibleNode.getNodeHash().equals(nodeHash)) {
+            fileRegistry.putIfAbsent(fileHash, responsibleNode);
+            return "REPLICATE";
+        }
+        return "IGNORE";
+    }
+
+    private NodeEntity findResponsibleNode(long fileHash) {
+        ArrayList<Long> sortedHashes = nodeStorageService.keys();
+        Collections.sort(sortedHashes);
+        for (int i=0; i<sortedHashes.size(); i++) {
+            long current = sortedHashes.get(i);
+            // +sortedHashes.size() % sortedHashes.size() for negative indices, hashmaps won't wrap around in java
+            long previous = sortedHashes.get((i - 1 + sortedHashes.size()) % sortedHashes.size());
+            if (fileHash > previous && fileHash <= current) {
+                return nodeStorageService.findById(current).orElse(null);
+            }
+        }
+        // Wrap around, fileHash is less than all node hashes -> smallest nodeHash owns it
+        return nodeStorageService.findById(sortedHashes.get(0)).orElse(null);
+    }
 }
