@@ -10,11 +10,9 @@ import schnitzel.NamingServer.NamingServer;
 import schnitzel.NamingServer.NamingServerHash;
 import schnitzel.NamingServer.Node.NodeStorageService;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 @Component
@@ -47,14 +45,33 @@ public class ServerMulticastListener {
     }
 
     private void listen() {
-        try(MulticastSocket socket = new MulticastSocket(PORT)){
-            InetAddress groupIP = InetAddress.getByName(this.groupIP);
-            this.multicast.JoinMulticast();
+        try(MulticastSocket socket = new MulticastSocket(PORT)) {
+            InetAddress group = InetAddress.getByName(groupIP);
+
+            // Enable loopback mode
+            socket.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
+
+            // Specify network interface (optional, set to null for default)
+            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            if (networkInterface == null) {
+                System.out.println("Using default network interface");
+            } else {
+                System.out.println("Using interface: " + networkInterface.getName());
+            }
+
+            // Join the multicast group
+            socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
+            System.out.println("Joined group: " + group.getHostAddress() + ":"+PORT);
+
+
+
+
             byte[] buffer = new byte[1024];
             while(true){
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
+                System.out.println(message);
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 Long hash = NamingServerHash.hash(nodeName);
@@ -71,6 +88,7 @@ public class ServerMulticastListener {
                 DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
                 responseSocket.send(responsePacket);
                 responseSocket.close();
+                System.out.println("Multicast Listener Stopped");
             }
         } catch (IOException e){
             e.printStackTrace();

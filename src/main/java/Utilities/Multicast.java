@@ -14,6 +14,8 @@ public class Multicast {
         this.groupIP = groupIP;
         this.port = port;
         this.socket = new MulticastSocket(this.port);
+        this.socket.setOption(StandardSocketOptions.IP_MULTICAST_LOOP,true);
+        this.socket.setTimeToLive(1);
     }
 
     public InetAddress getGroupIP() {
@@ -49,10 +51,10 @@ public class Multicast {
 //        System.out.println("Joining Multicast: "+InetAddress.getByName(groupIP));
 //        socket.joinGroup(InetAddress.getByName(groupIP));
         InetAddress group = InetAddress.getByName(groupIP);
+        String Name = System.getProperty("user.name");
         NetworkInterface networkInterface = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());
-        System.out.println("Joining Multicast: "+group+", port: "+port+", network interface: "+networkInterface);
+        System.out.println(Name+" Joining Multicast: "+group+", port: "+port+", network interface: "+networkInterface);
         socket.joinGroup(new InetSocketAddress(group, port), networkInterface);
-
     }
 
     /// This send method is used to send a custom message
@@ -63,8 +65,7 @@ public class Multicast {
                 InetAddress.getByName(groupIP), port
         );
         socket.send(sendMessage);
-        System.out.println("Multicast sent to " + IP + ":" + port);
-
+        System.out.println("Multicast sent to " + groupIP + ":" + port);
     }
 
     /// This send method is used to send the information (nodeName, nodeIP) during Bootstrap.
