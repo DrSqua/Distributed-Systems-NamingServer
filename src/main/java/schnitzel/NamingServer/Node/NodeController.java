@@ -90,6 +90,22 @@ public class NodeController {
         return nodeStorageService.getAll();
     }
 
+
+    /**
+     *
+     * @param fileHash: Hash value of the file
+     * @return the owner of the given file
+     */
+    @GetMapping("/node/owner")
+    public NodeEntity getFileOwner(@RequestParam long fileHash) {
+        return fileRegistry.get(fileHash);
+    }
+
+    @PostMapping("/node/owner")
+    public void updateFileOwner(@RequestParam NodeEntity fileOwnerNode, @RequestParam long fileHash) {
+        fileRegistry.putIfAbsent(fileHash, fileOwnerNode);
+    }
+
     /**
      * @param fileHash: Hash value of the file
      * @param nodeHash: Hash value of the originating node

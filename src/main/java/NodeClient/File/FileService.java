@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -15,6 +15,7 @@ import java.nio.file.*;
 @Service
 public class FileService {
     private final Path localPath = Paths.get("local_files").toAbsolutePath();
+    private final Path replicatedPath = Paths.get("replicated_files").toAbsolutePath();
     // Inject RingStorage so we know the neighbors
     private final RingStorage ringStorage;
     // Get the Server port from application.properties
@@ -22,38 +23,40 @@ public class FileService {
     private int serverPort;
 
     @Autowired
+    private FileLoggerService fileLoggerService;
+
+    @Autowired
     public FileService(RingStorage ringStorage) throws IOException {
         Files.createDirectories(localPath);
+        Files.createDirectories(replicatedPath);
         this.ringStorage = ringStorage;
     }
 
-    public void storeFile(MultipartFile file) throws IOException {
-        Path targetPath = localPath.resolve(file.getOriginalFilename());
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    public void deleteFile(String name) throws IOException {
-        Path targetPath = localPath.resolve(name);
-        Files.deleteIfExists(targetPath);
-    }
-
-    public void handleReplication(ReplicationMessage message) throws IOException {
-        Path filePath = localPath.resolve(message.fileName());
+    public void handleFileOperations(FileMessage message) throws IOException {
+        String fileName = message.fileName();
+        long fileHash = NamingServerHash.hash(fileName);
+        Path replicatedFilePath = replicatedPath.resolve(fileName);
+        Path localFilePath = localPath.resolve(fileName);
+        Path targetPath = null;
         switch (message.operation()) {
             case "CREATE":
-                Files.write(filePath, message.fileData(), StandardOpenOption.CREATE);
-                break;
-            case "DELETE":
-                Files.deleteIfExists(filePath);
-                break;
-            case "SHUTDOWN":
-                // TODO handle transfer files if needed
-                break;
+                targetPath = localFilePath;
+                Files.write(targetPath, message.fileData(), StandardOpenOption.CREATE);
+            case "REPLICATE":
+                targetPath = replicatedFilePath;
+                Files.write(targetPath, message.fileData(), StandardOpenOption.CREATE);
+            case "DELETE_LOCAL":
+                targetPath = localFilePath;
+                Files.deleteIfExists(targetPath);
+            case "DELETE_REPLICA":
+                targetPath = replicatedFilePath;
+                Files.deleteIfExists(targetPath);
         }
+        fileLoggerService.logReplication(fileName, fileHash, message.operation(), String.valueOf(targetPath));
     }
 
     public void replicateToNeighbors(String fileName, String operation, byte[] data) {
-        ReplicationMessage message = new ReplicationMessage(fileName, operation, data);
+        FileMessage message = new FileMessage(fileName, operation, data);
         try {
             // Getting next node and its IP
             NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
