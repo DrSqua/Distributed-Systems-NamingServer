@@ -52,7 +52,11 @@ public class ServerMulticastListener {
             socket.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
 
             // Specify network interface (optional, set to null for default)
-            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            // local
+            //NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            //remote
+            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {
