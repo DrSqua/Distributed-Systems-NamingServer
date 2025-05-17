@@ -2,11 +2,10 @@ package NodeClient.Components;
 
 import NodeClient.File.FileService;
 import NodeClient.RingAPI.RingStorage;
+import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.File;
@@ -20,9 +19,6 @@ public class FileCheckerBean {
     private final FileService fileService;
     private final Map<String, Long> knownFiles = new HashMap<>();
     private final Path filePathLocal;
-
-    @Value("${server.port}")
-    private int serverPort;
 
     @Autowired
     public FileCheckerBean(RingStorage ringStorage, FileService fileService) {
@@ -59,20 +55,19 @@ public class FileCheckerBean {
             return;
         }
         for (File file : files) {
-            if (file.isFile()) {
-                String fileName = file.getName();
-                long fileHash = NamingServerHash.hash(fileName);
-                try {
-                    String parameters = "fileHash=" + fileHash + "&nodeName=" + ringStorage.currentHash();
-                    String url = "http://" + ringStorage.getNamingServerIP() + ":" + serverPort + "/node/replication?" + parameters;
-                    String response = new RestTemplate().getForObject(url, String.class);
-                    if ("REPLICATE".equalsIgnoreCase(response)) {
-                        byte[] data = Files.readAllBytes(file.toPath());
-                        fileService.replicateToNeighbors(fileName, "CREATE", data);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+            if (!file.isFile()) {
+                continue;
+            }
+            String fileName = file.getName();
+            long fileHash = NamingServerHash.hash(fileName);
+            try {
+                String response = RestMessagesRepository.checkReplicationResponsibility(fileHash, ringStorage.currentHash(), ringStorage.getNamingServerIP());
+                if ("REPLICATE".equalsIgnoreCase(response)) {
+                    byte[] data = Files.readAllBytes(file.toPath());
+                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
         }
@@ -88,13 +83,14 @@ public class FileCheckerBean {
                     return;
                 }
                 for (File localFile : files) {
-                    if (localFile.isFile()) {
-                        String fileName = localFile.getName();
-                        long fileHash = NamingServerHash.hash(fileName);
-                        if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
-                            knownFiles.put(fileName, fileHash);
-                            fileService.replicateToNeighbors(fileName, "CREATE", Files.readAllBytes(localFile.toPath()));
-                        }
+                    if (!localFile.isFile()) {
+                        continue;
+                    }
+                    String fileName = localFile.getName();
+                    long fileHash = NamingServerHash.hash(fileName);
+                    if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
+                        knownFiles.put(fileName, fileHash);
+                        fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
                     }
                 }
                 Thread.sleep(5000);
