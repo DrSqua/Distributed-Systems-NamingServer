@@ -9,12 +9,10 @@ import schnitzel.NamingServer.NamingServerHash;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class NodeController {
     private final NodeStorageService nodeStorageService;
-    private final ConcurrentHashMap<Long, NodeEntity> fileRegistry = new ConcurrentHashMap<>();
     NodeController(NodeStorageService nodeStorageService) {
         this.nodeStorageService = nodeStorageService;
     }
@@ -98,12 +96,11 @@ public class NodeController {
      */
     @GetMapping("/node/owner")
     public NodeEntity getFileOwner(@RequestParam long fileHash) {
-        return fileRegistry.get(fileHash);
-    }
-
-    @PostMapping("/node/owner")
-    public void updateFileOwner(@RequestParam NodeEntity fileOwnerNode, @RequestParam long fileHash) {
-        fileRegistry.putIfAbsent(fileHash, fileOwnerNode);
+        NodeEntity owner = findResponsibleNode(fileHash);
+        if (owner == null) {
+            throw new ResourceNotFoundException("Node with hash " + fileHash + " does not exist");
+        }
+        return owner;
     }
 
     /**
@@ -116,7 +113,6 @@ public class NodeController {
         NodeEntity responsibleNode = findResponsibleNode(fileHash);
 
         if (responsibleNode.getNodeHash().equals(nodeHash)) {
-            fileRegistry.putIfAbsent(fileHash, responsibleNode);
             return "REPLICATE";
         }
         return "IGNORE";
@@ -124,13 +120,15 @@ public class NodeController {
 
     private NodeEntity findResponsibleNode(long fileHash) {
         ArrayList<Long> sortedHashes = nodeStorageService.keys();
+        if (sortedHashes.isEmpty()) {
+            return null;
+        }
+        // sort the hashes so the smallest node hash is first
         Collections.sort(sortedHashes);
-        for (int i=0; i<sortedHashes.size(); i++) {
-            long current = sortedHashes.get(i);
-            // +sortedHashes.size() % sortedHashes.size() for negative indices, hashmaps won't wrap around in java
-            long previous = sortedHashes.get((i - 1 + sortedHashes.size()) % sortedHashes.size());
-            if (fileHash > previous && fileHash <= current) {
-                return nodeStorageService.findById(current).orElse(null);
+        for (Long nodeHash : sortedHashes) {
+            // if the fileHash is smaller, then the node has this node is the owner
+            if (fileHash <= nodeHash) {
+                return nodeStorageService.findById(nodeHash).orElse(null);
             }
         }
         // Wrap around, fileHash is less than all node hashes -> smallest nodeHash owns it

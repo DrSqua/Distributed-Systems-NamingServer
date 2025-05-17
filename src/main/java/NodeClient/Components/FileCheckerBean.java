@@ -5,7 +5,6 @@ import NodeClient.RingAPI.RingStorage;
 import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import schnitzel.NamingServer.NamingServerHash;
 
@@ -75,7 +74,6 @@ public class FileCheckerBean {
     }
 
     // Check every 5 seconds for changes on localFolder for replication
-    // TODO why not just replicate it in REST API at uploadFile()
     private void checkFiles() {
         while (true) {
             try {

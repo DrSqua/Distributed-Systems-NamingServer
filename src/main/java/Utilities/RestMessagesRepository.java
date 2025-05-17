@@ -50,7 +50,7 @@ public class RestMessagesRepository {
     }
 
     public static void removingSelfFromSystem(String nodeName, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) {
-        // Tell neighbours they are now eachother's neighbour
+        // Tell neighbours they are now each other's neighbour
         RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
         RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
 
@@ -58,13 +58,12 @@ public class RestMessagesRepository {
         RestMessagesRepository.removeFromNamingServer(nodeName, namingServerIP);
     }
 
-    public static void transferFile(FileMessage message, String targetNodeIp, int serverPort) {
+    public static void handleFileOperations(FileMessage message, String targetNodeIp, int serverPort) {
         new RestTemplate().postForObject("http://" + targetNodeIp + ":" + serverPort + "/node/file/replication", message, Void.class);
     }
 
-    public static void updateNamingServerFileRegistry(NodeEntity node, int fileHash, String namingServerIp, int port) {
-        String url = "http://" + namingServerIp + ":" + port +"/node/owner?fileOwnerNode=" + node + "&fileHash=" + fileHash;
-        new RestTemplate().getForObject(url, NodeEntity.class);
+    public static void handleTransfer(FileMessage message, String targetNodeIp, int serverPort) {
+        new RestTemplate().postForObject("http://" + targetNodeIp + ":" + serverPort + "/node/file/transfer", message, Void.class);
     }
 
     public static NodeEntity getFileOwner(long FileHash, String namingServerIp, int serverPort) {

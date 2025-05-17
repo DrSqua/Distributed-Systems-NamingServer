@@ -1,10 +1,13 @@
 package NodeClient.Components;
 
+import NodeClient.File.FileLoggerService;
 import NodeClient.File.FileMessage;
+import NodeClient.File.FileService;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import schnitzel.NamingServer.NamingServerHash;
@@ -17,12 +20,17 @@ import java.nio.file.Paths;
 @Component
 public class OnShutdownBean {
     private final RingStorage ringStorage;
+    private final FileService fileService;
+    private final FileLoggerService fileLoggerService;
 
     @Value("${server.port}")
     private int serverPort;
 
-    public OnShutdownBean(RingStorage ringStorage) {
+    @Autowired
+    public OnShutdownBean(RingStorage ringStorage, FileService fileService) {
         this.ringStorage = ringStorage;
+        this.fileService = fileService;
+        this.fileLoggerService = fileService.getFileLoggerService();
     }
 
     @PreDestroy
@@ -34,15 +42,44 @@ public class OnShutdownBean {
                 new IllegalStateException("Existing Node does not have previous set")
         );
 
-        NodeEntity currentNode = RestMessagesRepository.getNode(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP());
-
-        transferReplicatedFiles(currentNode);
+        handleLocalFiles();
+        transferReplicatedFiles();
 
         RestMessagesRepository.removingSelfFromSystem(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP(), previousNode, nextNode);
     }
 
-    private void transferReplicatedFiles(NodeEntity currentNode) throws IOException {
+    private void handleLocalFiles() throws IOException {
+        File[] files = Paths.get("local_files").toFile().listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (!file.isFile()) {
+                continue;
+            }
+            String fileName = file.getName();
+            long fileHash = NamingServerHash.hash(fileName);
+            // log a shutdown operation
+            fileLoggerService.logOperation(fileName, fileHash, "SHUTDOWN", file.getPath());
+            boolean wasDownloaded = fileLoggerService.wasFileDownloaded(fileName);
+            // if the file has been downloaded we transfer the file to our neighbor and then delete the file here
+            if (wasDownloaded) {
+                NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
+                        new IllegalStateException("Existing Node does not have previous set")
+                );
+                FileMessage message = new FileMessage(fileName, "TRANSFER", Files.readAllBytes(file.toPath()));
+                RestMessagesRepository.handleTransfer(message, previousNode.getIpAddress(), serverPort);
+
+            }
+            // now we can safely delete the file
+            FileMessage message = new FileMessage(fileName, "DELETE_LOCAL", Files.readAllBytes(file.toPath()));
+            fileService.handleFileOperations(message);
+        }
+    }
+
+    private void transferReplicatedFiles() throws IOException {
         File[] files = Paths.get("replicated_files").toFile().listFiles();
+        NodeEntity currentNode = RestMessagesRepository.getNode(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP());
 
         if (files == null) {
             return;
@@ -70,32 +107,12 @@ public class OnShutdownBean {
                 continue;
             }
             byte[] data = Files.readAllBytes(file.toPath());
-            FileMessage message = new FileMessage(fileName, "TRANSFER", data);
-            RestMessagesRepository.transferFile(message, targetNode.getIpAddress(), serverPort);
+            // first transfer to the right node
+            FileMessage transferMessage = new FileMessage(fileName, "TRANSFER", data);
+            RestMessagesRepository.handleTransfer(transferMessage, targetNode.getIpAddress(), serverPort);
+            // then delete the file
+            FileMessage deleteMessage = new FileMessage(fileName, "DELETE_REPLICA", null);
+            fileService.handleFileOperations(deleteMessage);
         }
     }
-
-    /*
-    private void notifyFileOwners() throws IOException {
-        File[] files = Paths.get("replicated_files").toFile().listFiles();
-
-        if (files == null) {
-            return;
-        }
-        for (File file : files) {
-            if (!file.isFile()) {
-                continue;
-            }
-            String fileName = file.getName();
-            long fileHash = NamingServerHash.hash(fileName);
-            String namingServerIp = ringStorage.getNamingServerIP();
-            String url = "http://" + namingServerIp + ":" + serverPort + "/node/owner?fileHash=" + fileHash;
-            NodeEntity owner = new RestTemplate().getForObject(url, NodeEntity.class);
-            byte[] fileData = Files.readAllBytes(file.toPath());
-            FileMessage shutdownMessage = new FileMessage(fileName, "DELETE", fileData);
-            url = "http://" + owner.getIpAddress() + ":" + serverPort + "/node/file/replication";
-            new RestTemplate().postForObject(url, shutdownMessage, Void.class);
-        }
-    }
-    */
 }
