@@ -1,16 +1,12 @@
 package schnitzel.NamingServer.MulticastListening;
 
-import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
 import Utilities.NodeEntity.NodeEntity;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import schnitzel.NamingServer.NamingServer;
 import schnitzel.NamingServer.NamingServerHash;
 import schnitzel.NamingServer.Node.NodeStorageService;
-
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
@@ -24,11 +20,15 @@ public class ServerMulticastListener {
     @Value("${multicast.port}")
     private int PORT;
 
+
+    @Value("${server.port}")
+    private int unicast_PORT;
+
     @Value("${multicast.groupIP}")
     private String groupIP;
 
 
-    public ServerMulticastListener(NodeStorageService storage) throws IOException {
+    public ServerMulticastListener(NodeStorageService storage){
         this.storage = storage;
         this.IP = "192.168.43.100";
         //this.multicast = new Multicast(IP,groupIP,PORT);
@@ -53,9 +53,10 @@ public class ServerMulticastListener {
 
             // Specify network interface (optional, set to null for default)
             // local
-            //NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+
             //remote
-            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+            //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
 
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
@@ -78,6 +79,7 @@ public class ServerMulticastListener {
                 System.out.println(message);
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
+                String responsePORT = message.split(",")[2];
                 Long hash = NamingServerHash.hash(nodeName);
                 NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
                 storage.put(hash,node);
@@ -86,12 +88,33 @@ public class ServerMulticastListener {
                  *  We made this a multicast, because this number needs to be updated by all nodes (otherwise
                  *  they will have an incorrect number).
                  */
+
                 String response = String.valueOf(storage.count());
+                System.out.println("number of nodes: " + response);
+                //byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+                //DatagramSocket responseSocket = new DatagramSocket();
+                //multicast.SendMulticast(response);
                 byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-                DatagramSocket responseSocket = new DatagramSocket();
-                DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
-                responseSocket.send(responsePacket);
-                responseSocket.close();
+                int port = Integer.parseInt(responsePORT);
+                // Send a direct (unicast) reply back to the sender
+                try (DatagramSocket respSocket = new DatagramSocket()) {
+                    DatagramPacket respPacket = new DatagramPacket(
+                            responseBytes,
+                            responseBytes.length,
+                            packet.getAddress(),   // the node’s IP
+                            port       // the node’s source port
+                    );
+                    respSocket.send(respPacket);
+                    System.out.println("packet send to node");
+                    System.out.printf("Unicast reply (%s) sent to %s:%d%n",
+                            response, packet.getAddress().getHostAddress(), packet.getPort());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                    //DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
+                //socket.send(responsePacket);
+                //socket.close();
                 System.out.println("Multicast Listener Stopped");
             }
         } catch (IOException e){
