@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,11 +45,17 @@ public class FileCheckerBean {
                 return;
             }
         }
-        verifyAndReportFiles();
-        checkFiles();
+        try {
+            verifyAndReportFiles();
+            checkFiles();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        }
+
     }
 
-    private void verifyAndReportFiles() {
+    private void verifyAndReportFiles() throws IOException {
         File[] files = filePathLocal.toFile().listFiles();
         // Guard clause
         if (files == null) {
@@ -60,46 +67,35 @@ public class FileCheckerBean {
             }
             String fileName = file.getName();
             long fileHash = NamingServerHash.hash(fileName);
-            try {
-                String response = RestMessagesRepository.checkReplicationResponsibility(fileHash, ringStorage.currentHash(), ringStorage.getNamingServerIP());
-                if ("REPLICATE".equalsIgnoreCase(response)) {
-                    byte[] data = Files.readAllBytes(file.toPath());
-                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            String response = RestMessagesRepository.checkReplicationResponsibility(fileHash, ringStorage.currentHash(), ringStorage.getNamingServerIP());
+            if ("REPLICATE".equalsIgnoreCase(response)) {
+                byte[] data = Files.readAllBytes(file.toPath());
+                fileService.replicateToNeighbors(fileName, "REPLICATE", data);
             }
 
         }
     }
 
     // Check every 5 seconds for changes on localFolder for replication
-    private void checkFiles() {
+    private void checkFiles() throws InterruptedException, IOException {
         while (true) {
-            try {
-                File[] files = filePathLocal.toFile().listFiles();
-                // Guard clause
-                if (files == null) {
-                    return;
-                }
-                for (File localFile : files) {
-                    if (!localFile.isFile()) {
-                        continue;
-                    }
-                    String fileName = localFile.getName();
-                    long fileHash = NamingServerHash.hash(fileName);
-                    if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
-                        knownFiles.put(fileName, fileHash);
-                        fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
-                    }
-                }
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
+            File[] files = filePathLocal.toFile().listFiles();
+            // Guard clause
+            if (files == null) {
+                return;
             }
+            for (File localFile : files) {
+                if (!localFile.isFile()) {
+                    continue;
+                }
+                String fileName = localFile.getName();
+                long fileHash = NamingServerHash.hash(fileName);
+                if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
+                    knownFiles.put(fileName, fileHash);
+                    fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
+                }
+            }
+            Thread.sleep(5000);
         }
     }
 }
