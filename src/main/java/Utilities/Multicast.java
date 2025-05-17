@@ -48,8 +48,6 @@ public class Multicast {
     }
 
     public void JoinMulticast() throws IOException {
-//        System.out.println("Joining Multicast: "+InetAddress.getByName(groupIP));
-//        socket.joinGroup(InetAddress.getByName(groupIP));
         InetAddress group = InetAddress.getByName(groupIP);
         String Name = System.getProperty("user.name");
         NetworkInterface networkInterface = NetworkInterface.getByInetAddress(InetAddress.getLocalHost());

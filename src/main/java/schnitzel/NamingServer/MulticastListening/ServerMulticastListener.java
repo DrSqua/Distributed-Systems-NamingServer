@@ -31,7 +31,6 @@ public class ServerMulticastListener {
     public ServerMulticastListener(NodeStorageService storage){
         this.storage = storage;
         this.IP = "192.168.43.100";
-        //this.multicast = new Multicast(IP,groupIP,PORT);
     }
 
     @PostConstruct
@@ -83,6 +82,7 @@ public class ServerMulticastListener {
                 Long hash = NamingServerHash.hash(nodeName);
                 NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
                 storage.put(hash,node);
+
                 /*
                  *  Now the namingServer will respond. By sending the number of existing nodes to the new node.
                  *  We made this a multicast, because this number needs to be updated by all nodes (otherwise
@@ -91,9 +91,6 @@ public class ServerMulticastListener {
 
                 String response = String.valueOf(storage.count());
                 System.out.println("number of nodes: " + response);
-                //byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-                //DatagramSocket responseSocket = new DatagramSocket();
-                //multicast.SendMulticast(response);
                 byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
                 int port = Integer.parseInt(responsePORT);
                 // Send a direct (unicast) reply back to the sender
@@ -111,10 +108,6 @@ public class ServerMulticastListener {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
-                    //DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, packet.getAddress(), packet.getPort());
-                //socket.send(responsePacket);
-                //socket.close();
                 System.out.println("Multicast Listener Stopped");
             }
         } catch (IOException e){
