@@ -11,6 +11,8 @@ import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -112,4 +114,51 @@ public class FileService {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Returns a list of names of files stored locally that are owned by this node.
+     * @return List of local file names, or empty list if none or error.
+     */
+    public List<String> getLocalFileNames() {
+        if (!Files.exists(localPath) || !Files.isDirectory(localPath)) {
+            System.out.println("Local files directory does not exist: " + localPath);
+            return Collections.emptyList();
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(localPath)) {
+            List<String> fileNames = new ArrayList<>();
+            for (Path entry : stream) {
+                if (Files.isRegularFile(entry)) {
+                    fileNames.add(entry.getFileName().toString());
+                }
+            }
+            return fileNames;
+        } catch (IOException e) {
+            System.err.println("Error reading local_files directory: " + localPath + " - " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Returns a list of names of files stored on this node as replicas from other nodes.
+     * @return List of replicated file names, or empty list if none or error.
+     */
+    public List<String> getReplicatedFileNames() {
+        if (!Files.exists(replicatedPath) || !Files.isDirectory(replicatedPath)) {
+            System.out.println("Replicated files directory does not exist: " + replicatedPath);
+            return Collections.emptyList();
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(replicatedPath)) {
+            List<String> fileNames = new ArrayList<>();
+            for (Path entry : stream) {
+                if (Files.isRegularFile(entry)) {
+                    fileNames.add(entry.getFileName().toString());
+                }
+            }
+            return fileNames;
+        } catch (IOException e) {
+            System.err.println("Error reading replicated_files directory: " + replicatedPath + " - " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
 }
+

@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/node/file")
@@ -53,5 +55,62 @@ public class FileController {
     @PostMapping("/transfer")
     public void handleTransfer(@RequestBody FileMessage message) throws IOException {
         fileService.handleTransfer(message);
+    }
+
+    /**
+     * Lists all files (local and replicated) on this node.
+     * The GUI will call this endpoint as GET /node/file/api/list (due to RequestMapping)
+     * or if you prefer GET /api/files/list, then this endpoint should be in a different controller
+     * or this controller's RequestMapping should be adjusted.
+     *
+     * Let's make it /node/file/list for consistency with this controller.
+     * The GUI controller will need to call: http://<node_ip>:8081/node/file/list
+     */
+    @GetMapping("/list") // This will be accessible at /node/file/list
+    public ResponseEntity<List<SimpleFileDefinition>> listAllNodeFiles() {
+        List<SimpleFileDefinition> filesDtoList = new ArrayList<>();
+
+        try {
+            List<String> localFileNames = fileService.getLocalFileNames();
+            if (localFileNames != null) {
+                for (String name : localFileNames) {
+                    filesDtoList.add(new SimpleFileDefinition(name, "local"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error retrieving local files for /list endpoint: " + e.getMessage());
+            // Optionally, you could return an error response here if this part fails critically
+        }
+
+        try {
+            List<String> replicatedFileNames = fileService.getReplicatedFileNames();
+            if (replicatedFileNames != null) {
+                for (String name : replicatedFileNames) {
+                    filesDtoList.add(new SimpleFileDefinition(name, "replicated"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error retrieving replicated files for /list endpoint: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(filesDtoList);
+    }
+
+    // Inner static DTO class for the file list response.
+    // This makes the FileController self-contained for this endpoint's response structure.
+    // The GUI's FileInfoDisplay DTO should have compatible field names ("fileName", "type").
+    public static class SimpleFileDefinition {
+        private String fileName;
+        private String type;
+
+        public SimpleFileDefinition(String fileName, String type) {
+            this.fileName = fileName;
+            this.type = type;
+        }
+
+        public String getFileName() { return fileName; }
+        public void setFileName(String fileName) { this.fileName = fileName; }
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
     }
 }

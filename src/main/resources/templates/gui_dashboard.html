@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Embedded Distributed System GUI</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            height: 100vh;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .sidebar {
+            width: 280px; /* Slightly wider for better readability */
+            background-color: #2c3e50; /* Darker blue-gray */
+            color: #ecf0f1; /* Light gray text */
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        .sidebar h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #34495e; /* Slightly darker border */
+            padding-bottom: 10px;
+            color: #ffffff; /* White heading */
+            font-size: 1.4em;
+        }
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .sidebar li a {
+            color: #bdc3c7; /* Lighter gray for links */
+            text-decoration: none;
+            display: block;
+            padding: 10px 5px; /* More padding */
+            border-radius: 4px;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .sidebar li a:hover {
+            background-color: #34495e; /* Darker highlight on hover */
+            color: white;
+        }
+        .sidebar li a.selected {
+            background-color: #1abc9c; /* Teal for selected */
+            color: white;
+            font-weight: bold;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 25px;
+            overflow-y: auto;
+        }
+        .content h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .card {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #3498db; /* Blue for card headings */
+            border-bottom: 1px solid #ecf0f1;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .error {
+            color: #c0392b; /* Darker red */
+            font-weight: bold;
+            background-color: #f2dede;
+            border: 1px solid #e74c3c; /* Red border */
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px 12px; /* More padding in table cells */
+            border: 1px solid #e0e0e0; /* Lighter border */
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #ecf0f1; /* Light gray for table headers */
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        .empty-state {
+            text-align: center;
+            color: #7f8c8d; /* Muted text color */
+            padding: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <h2>Nodes</h2>
+    <div th:if="${systemError}" class="error" style="color: #ffdddd; background-color: #7f0000;" th:text="${systemError}"></div>
+    <ul th:if="${allNodes != null and !allNodes.isEmpty()}">
+        <li th:each="node : ${allNodes}">
+            <!-- Pass node_ip for WebClient calls and node_hash for NamingServer direct lookup -->
+            <a th:href="@{/gui/dashboard(node_ip=${node.ipAddress}, node_hash=${node.nodeHash})}"
+               th:text="${node.nodeName} + ' (' + ${node.ipAddress} + ':' + ${node.port} + ')'"
+               th:classappend="${selectedNodeIdentifier == node.ipAddress + ':' + node.port ? 'selected' : ''}">
+                Node Link
+            </a>
+        </li>
+    </ul>
+    <p th:if="${allNodes == null or allNodes.isEmpty() and !systemError}" class="empty-state" style="color: #bdc3c7;">No nodes registered.</p>
+</div>
+
+<div class="content">
+    <h1>System Dashboard</h1>
+
+    <div th:if="${selectedNodeIdentifier == null}" class="card empty-state">
+        <p>Select a node from the sidebar to view its details.</p>
+    </div>
+
+    <div th:if="${selectedNodeIdentifier != null}">
+        <div class="card">
+            <h3>Node: <span th:text="${selectedNodeIdentifier}"></span></h3>
+            <div th:if="${selectedNodeConfigError}" class="error" th:text="${selectedNodeConfigError}"></div>
+
+            <table th:if="${selectedNodeConfig != null}">
+                <tr><th>Property</th><th>Value</th></tr>
+                <tr th:if="${selectedNodeConfig.currentNode != null}">
+                    <td>Current Node</td>
+                    <td th:text="${selectedNodeConfig.currentNode.nodeName} + ' (Hash: ' + ${selectedNodeConfig.currentNode.nodeHash} + ')'"></td>
+                </tr>
+                <tr th:unless="${selectedNodeConfig.currentNode != null and selectedNodeConfigError == null}"><td>Current Node</td><td>N/A</td></tr>
+
+                <tr th:if="${selectedNodeConfig.previousNode != null}">
+                    <td>Previous Node</td>
+                    <td th:text="${selectedNodeConfig.previousNode.nodeName} + ' (' + ${selectedNodeConfig.previousNode.ipAddress} + ':' + ${selectedNodeConfig.previousNode.port} + ')'"></td>
+                </tr>
+                <tr th:if="${selectedNodeConfig.previousNode == null and selectedNodeConfigError == null}">
+                    <td>Previous Node</td><td>N/A</td>
+                </tr>
+
+                <tr th:if="${selectedNodeConfig.nextNode != null}">
+                    <td>Next Node</td>
+                    <td th:text="${selectedNodeConfig.nextNode.nodeName} + ' (' + ${selectedNodeConfig.nextNode.ipAddress} + ':' + ${selectedNodeConfig.nextNode.port} + ')'"></td>
+                </tr>
+                <tr th:if="${selectedNodeConfig.nextNode == null and selectedNodeConfigError == null}">
+                    <td>Next Node</td><td>N/A</td>
+                </tr>
+            </table>
+            <p th:if="${selectedNodeConfig == null and !selectedNodeConfigError}" class="empty-state">Configuration data could not be loaded for this node.</p>
+        </div>
+
+        <div class="card">
+            <h3>Files on <span th:text="${selectedNodeIdentifier}"></span></h3>
+            <div th:if="${selectedNodeFilesError}" class="error" th:text="${selectedNodeFilesError}"></div>
+            <table th:if="${selectedNodeFiles != null and !selectedNodeFiles.isEmpty()}">
+                <tr><th>File Name</th><th>Type</th></tr>
+                <tr th:each="file : ${selectedNodeFiles}">
+                    <td th:text="${file.fileName}"></td>
+                    <td th:text="${file.type}"></td>
+                </tr>
+            </table>
+            <p th:if="${(selectedNodeFiles == null or selectedNodeFiles.isEmpty()) and #strings.isEmpty(selectedNodeFilesError)}" class="empty-state">No files found on this node.</p>
+            <p th:if="${not #strings.isEmpty(selectedNodeFilesError)}" class="error" th:text="${selectedNodeFilesError}"></p>        </div>
+    </div>
+</div>
+</body>
+</html>
