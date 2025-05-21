@@ -52,7 +52,6 @@ public class FileCheckerBean {
             e.printStackTrace();
             Thread.currentThread().interrupt();
         }
-
     }
 
     private void verifyAndReportFiles() throws IOException {
@@ -72,7 +71,6 @@ public class FileCheckerBean {
                 byte[] data = Files.readAllBytes(file.toPath());
                 fileService.replicateToNeighbors(fileName, "REPLICATE", data);
             }
-
         }
     }
 

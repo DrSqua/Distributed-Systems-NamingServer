@@ -23,9 +23,6 @@ public class OnShutdownBean {
     private final FileService fileService;
     private final FileLoggerService fileLoggerService;
 
-    @Value("${server.port}")
-    private int serverPort;
-
     @Autowired
     public OnShutdownBean(RingStorage ringStorage, FileService fileService) {
         this.ringStorage = ringStorage;
@@ -68,7 +65,7 @@ public class OnShutdownBean {
                         new IllegalStateException("Existing Node does not have previous set")
                 );
                 FileMessage message = new FileMessage(fileName, "TRANSFER", Files.readAllBytes(file.toPath()));
-                RestMessagesRepository.handleTransfer(message, previousNode.getIpAddress(), serverPort);
+                RestMessagesRepository.handleTransfer(message, previousNode.getIpAddress());
 
             }
             // now we can safely delete the file
@@ -90,7 +87,7 @@ public class OnShutdownBean {
             }
             String fileName = file.getName();
             long fileHash = NamingServerHash.hash(fileName);
-            NodeEntity ownerNode = RestMessagesRepository.getFileOwner(fileHash, ringStorage.getNamingServerIP(), serverPort);
+            NodeEntity ownerNode = RestMessagesRepository.getFileOwner(fileHash, ringStorage.getNamingServerIP());
             NodeEntity ownerPrev = RestMessagesRepository.getNeighbor(ownerNode, "PREVIOUS");
             NodeEntity ownerNext = RestMessagesRepository.getNeighbor(ownerNode, "NEXT");
             // Check here if we need to replicate the file to next or previous node
@@ -107,9 +104,9 @@ public class OnShutdownBean {
                 continue;
             }
             byte[] data = Files.readAllBytes(file.toPath());
-            // first transfer to the right node
+            // first transfer to the target node
             FileMessage transferMessage = new FileMessage(fileName, "TRANSFER", data);
-            RestMessagesRepository.handleTransfer(transferMessage, targetNode.getIpAddress(), serverPort);
+            RestMessagesRepository.handleTransfer(transferMessage, targetNode.getIpAddress());
             // then delete the file
             FileMessage deleteMessage = new FileMessage(fileName, "DELETE_REPLICA", null);
             fileService.handleFileOperations(deleteMessage);

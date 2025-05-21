@@ -1,5 +1,7 @@
 package Utilities.NodeEntity;
 import org.springframework.stereotype.Component;
+import schnitzel.NamingServer.NamingServerHash;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -15,13 +17,13 @@ public class NodeEntity {
     private String nodeName;
     private String ipAddress;
     Path path = Paths.get("").toAbsolutePath().normalize();
-    private Path filePathLocal =path.resolve("local_files");
-    private Path filePathReplica = path.resolve("replica_files");
+    private final Path filePathLocal =path.resolve("local_files");
+    private final Path filePathReplica = path.resolve("replicated_files");
 
-    public NodeEntity(String ipAddress, Long nodeHash, String nodeName) {
+    public NodeEntity(String ipAddress, String nodeName) {
         this.ipAddress = ipAddress;
         this.nodeName = nodeName;
-        this.nodeHash = nodeHash;
+        this.nodeHash = NamingServerHash.hashNode(nodeName, ipAddress);
     }
 
     public NodeEntity() {}

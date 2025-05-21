@@ -79,7 +79,7 @@ public class ServerMulticastListener {
                 String nodeIP = message.split(",")[1];
                 String responsePORT = message.split(",")[2];
                 Long hash = NamingServerHash.hashNode(nodeName, nodeIP);
-                NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
+                NodeEntity node = new NodeEntity(nodeIP, nodeName);
                 storage.put(hash,node);
 
                 /*

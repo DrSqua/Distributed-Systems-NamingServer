@@ -73,7 +73,6 @@ public class NodeController {
 
         NodeEntity newNodeEntity = new NodeEntity(
                 request.getRemoteAddr(),
-                nodeHash,
                 nodeEntityIn.nodeName
         );
         this.nodeStorageService.put(nodeHash, newNodeEntity);
@@ -112,6 +111,7 @@ public class NodeController {
     public String checkReplicationResponsibility(@RequestParam long fileHash, @RequestParam long nodeHash) {
         NodeEntity responsibleNode = findResponsibleNode(fileHash);
 
+        assert responsibleNode != null;
         if (responsibleNode.getNodeHash().equals(nodeHash)) {
             return "REPLICATE";
         }
