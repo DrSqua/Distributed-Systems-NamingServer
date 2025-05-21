@@ -7,4 +7,8 @@ public class NamingServerHash {
         long hashCode = nodeIdentifier.hashCode();
         return ((hashCode + max) * 32768) / (2*max);
     }
+
+    public static Long hashNode(String nodeName, String nodeIpAddress) {
+        return hash(nodeName + nodeIpAddress);
+    }
 }

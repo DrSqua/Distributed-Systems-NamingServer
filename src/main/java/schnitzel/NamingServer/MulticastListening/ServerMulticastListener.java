@@ -56,7 +56,6 @@ public class ServerMulticastListener {
 
             //remote
             //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
-
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {
@@ -79,7 +78,7 @@ public class ServerMulticastListener {
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 String responsePORT = message.split(",")[2];
-                Long hash = NamingServerHash.hash(nodeName);
+                Long hash = NamingServerHash.hashNode(nodeName, nodeIP);
                 NodeEntity node = new NodeEntity(nodeIP,hash, nodeName);
                 storage.put(hash,node);
 

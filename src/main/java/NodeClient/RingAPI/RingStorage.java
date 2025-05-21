@@ -4,6 +4,8 @@ import Utilities.NodeEntity.NodeEntity;
 import org.springframework.stereotype.Service;
 import schnitzel.NamingServer.NamingServerHash;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,7 +14,6 @@ public class RingStorage {
     private final ConcurrentHashMap<String, NodeEntity> dataMap = new ConcurrentHashMap<>();
 
     private String namingServerIP;
-
     public NodeEntity setNode(String direction, NodeEntity node) {
         return dataMap.put(direction, node);
     }
@@ -25,8 +26,9 @@ public class RingStorage {
         return System.getProperty("user.name");
     }
 
-    public Long currentHash() {
-        return NamingServerHash.hash(this.currentName());
+    public Long currentHash() throws UnknownHostException {
+        return NamingServerHash.hashNode(this.currentName(),
+                InetAddress.getByName(String.valueOf(InetAddress.getLocalHost())).toString()); // :)
     }
 
     public String getNamingServerIP() {

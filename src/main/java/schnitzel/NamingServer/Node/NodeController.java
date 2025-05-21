@@ -64,7 +64,7 @@ public class NodeController {
     @PostMapping("/node")
     long post(@RequestBody NodeEntityIn nodeEntityIn,
                     HttpServletRequest request) {
-        long nodeHash = NamingServerHash.hash(nodeEntityIn.nodeName);
+        long nodeHash = NamingServerHash.hashNode(nodeEntityIn.nodeName, request.getRemoteAddr());
 
         // Ensure uniqueness of nodeHash before saving
         if (nodeStorageService.existsById(nodeHash)) {

@@ -52,7 +52,7 @@ public class NodeMulticastListener {
                 String message = new String(packet.getData(), 0, packet.getLength());
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
-                Long hashedNodeName = NamingServerHash.hash(nodeName);
+                Long hashedNodeName = NamingServerHash.hashNode(nodeName, nodeIP);
                 NodeEntity receivedNode = new NodeEntity(nodeIP, hashedNodeName, nodeName);
 
                 NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->

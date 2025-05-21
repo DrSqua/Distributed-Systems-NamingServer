@@ -38,6 +38,7 @@ public class RestMessagesRepository {
             String url = "http://" + namingServerIP + ":"+PORT+"/node/" + nodeName;
             HttpEntity<String> request = new HttpEntity<>(null);
             restTemplate.delete(url, request, Void.class);
+            System.out.println("Removing self (" + nodeName + ") from naming server ");
         } catch (Exception e) {
             // TODO - what if we are already in the exception throwing?
         }
