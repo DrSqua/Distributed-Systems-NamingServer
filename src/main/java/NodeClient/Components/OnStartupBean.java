@@ -48,7 +48,7 @@ public class OnStartupBean {
             System.out.println("waiting for the response of the namingServer");
             //DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            System.out.println("Waiting for naming-server’s unicast reply…");
+            System.out.println("Waiting for naming-server’s unicast reply… Listening on ip " + clientIP);
             DatagramSocket socket2 = new DatagramSocket(responsePORT);
             socket2.receive(packet);
             System.out.println("we received a response: "+packet.getLength());
