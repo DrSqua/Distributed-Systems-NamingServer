@@ -3,6 +3,7 @@ package schnitzel.NamingServer.GUI;
 import schnitzel.NamingServer.GUI.DTO.FileInfoDisplay;
 import schnitzel.NamingServer.GUI.DTO.NodeConfigDisplay;
 import schnitzel.NamingServer.GUI.DTO.NodeInfoDisplay;
+import schnitzel.NamingServer.GUI.DTO.NodeClientFileListResponse;
 import schnitzel.NamingServer.GUI.NodeClientFileDTO;
 import schnitzel.NamingServer.Node.NodeStorageService; // Direct access
 import schnitzel.NamingServer.Node.NodeController; // To use its parseIdentifier method (or replicate logic)
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 
 import java.util.Collections;
@@ -125,25 +127,53 @@ public class DashboardGuiController {
 
             // Fetch Node Files from NodeClient
             try {
-                List<NodeClientFileDTO> clientFiles = targetNodeClient.get()
-                        .uri("/node/file/list")
+                NodeClientFileListResponse clientFileResponse = targetNodeClient.get()
+                        .uri("/node/file/list") // This matches your NodeClient's FileController
                         .retrieve()
-                        .bodyToFlux(NodeClientFileDTO.class)
-                        .collectList()
-                        .onErrorReturn(Collections.emptyList())
+                        .bodyToMono(NodeClientFileListResponse.class) // Deserializes into the NamingServer's DTO
+                        .onErrorResume(WebClientResponseException.NotFound.class, e -> {
+                            log.warn("/node/file/list not found (404) on {}. Assuming no files.", nodeBaseUrl);
+                            // Return an empty response object to avoid nulls later
+                            NodeClientFileListResponse emptyResp = new NodeClientFileListResponse();
+                            emptyResp.setLocalFiles(Collections.emptyList());
+                            emptyResp.setReplicatedFiles(Collections.emptyList());
+                            return Mono.just(emptyResp);
+                        })
+                        .onErrorResume(WebClientRequestException.class, e -> { // Catches connection errors
+                            log.error("Connection error fetching files from {}: {}", nodeBaseUrl, e.getMessage());
+                            model.addAttribute("selectedNodeFilesError", "Node unreachable for file list.");
+                            NodeClientFileListResponse emptyResp = new NodeClientFileListResponse();
+                            emptyResp.setLocalFiles(Collections.emptyList());
+                            emptyResp.setReplicatedFiles(Collections.emptyList());
+                            return Mono.just(emptyResp);
+                        })
+                        .onErrorResume(e -> { // Catchall for other reactive errors
+                            log.error("Generic reactive error fetching files from {}: {}", nodeBaseUrl, e.getMessage());
+                            model.addAttribute("selectedNodeFilesError", "Unexpected error fetching files.");
+                            NodeClientFileListResponse emptyResp = new NodeClientFileListResponse();
+                            emptyResp.setLocalFiles(Collections.emptyList());
+                            emptyResp.setReplicatedFiles(Collections.emptyList());
+                            return Mono.just(emptyResp);
+                        })
                         .block();
 
-                if (clientFiles != null) {
-                    List<FileInfoDisplay> displayFiles = clientFiles.stream()
-                            .map(cf -> new FileInfoDisplay(cf.getFileName(), cf.getType()))
-                            .collect(Collectors.toList());
-                    model.addAttribute("selectedNodeFiles", displayFiles);
+                if (clientFileResponse != null) {
+                    model.addAttribute("selectedNodeLocalFiles",
+                            clientFileResponse.getLocalFiles() != null ? clientFileResponse.getLocalFiles() : Collections.emptyList());
+                    model.addAttribute("selectedNodeReplicatedFiles",
+                            clientFileResponse.getReplicatedFiles() != null ? clientFileResponse.getReplicatedFiles() : Collections.emptyList());
                 } else {
-                    model.addAttribute("selectedNodeFiles", Collections.emptyList());
+                    // This case should be rare if onErrorResume returns an empty object
+                    model.addAttribute("selectedNodeLocalFiles", Collections.emptyList());
+                    model.addAttribute("selectedNodeReplicatedFiles", Collections.emptyList());
                 }
-            } catch (Exception e) {
-                log.error("Error during files fetch for {}: {}", nodeBaseUrl, e.getMessage());
-                model.addAttribute("selectedNodeFilesError", "Error fetching files.");
+                // selectedNodeFilesError might have been set by onErrorResume blocks if it was a non-404 error
+
+            } catch (Exception e) { // Catch synchronous exceptions from .block() or other issues
+                log.error("Synchronous exception during files fetch for {}: {}", nodeBaseUrl, e.getMessage(), e);
+                model.addAttribute("selectedNodeFilesError", "Error fetching files (Node API error or unavailable).");
+                model.addAttribute("selectedNodeLocalFiles", Collections.emptyList());
+                model.addAttribute("selectedNodeReplicatedFiles", Collections.emptyList());
             }
         }
         return "gui_dashboard";

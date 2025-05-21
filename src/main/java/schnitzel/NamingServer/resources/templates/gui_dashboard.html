@@ -108,10 +108,10 @@
 <body>
 <div class="sidebar">
     <h2>Nodes</h2>
-    <div th:if="${systemError}" class="error" style="color: #ffdddd; background-color: #7f0000;" th:text="${systemError}"></div>
+    <div th:if="${systemError}" class="error" th:text="${systemError}"></div> <!-- For general system errors like NamingServer down -->
+
     <ul th:if="${allNodes != null and !allNodes.isEmpty()}">
         <li th:each="node : ${allNodes}">
-            <!-- Pass node_ip for WebClient calls and node_hash for NamingServer direct lookup -->
             <a th:href="@{/gui/dashboard(node_ip=${node.ipAddress}, node_hash=${node.nodeHash})}"
                th:text="${node.nodeName} + ' (' + ${node.ipAddress} + ':' + ${node.port} + ')'"
                th:classappend="${selectedNodeIdentifier == node.ipAddress + ':' + node.port ? 'selected' : ''}">
@@ -119,7 +119,7 @@
             </a>
         </li>
     </ul>
-    <p th:if="${allNodes == null or allNodes.isEmpty() and !systemError}" class="empty-state" style="color: #bdc3c7;">No nodes registered.</p>
+    <p th:if="${(allNodes == null or allNodes.isEmpty()) and #strings.isEmpty(systemError)}" class="empty-state" style="color: #bdc3c7;">No nodes registered.</p>
 </div>
 
 <div class="content">
@@ -130,49 +130,68 @@
     </div>
 
     <div th:if="${selectedNodeIdentifier != null}">
+        <!-- Node Configuration Card -->
         <div class="card">
             <h3>Node: <span th:text="${selectedNodeIdentifier}"></span></h3>
-            <div th:if="${selectedNodeConfigError}" class="error" th:text="${selectedNodeConfigError}"></div>
 
-            <table th:if="${selectedNodeConfig != null}">
+            <!-- Display configuration error if present -->
+            <div th:if="${not #strings.isEmpty(selectedNodeConfigError)}" class="error" th:text="${selectedNodeConfigError}"></div>
+
+            <!-- Display configuration table if no error and config is available -->
+            <table th:if="${#strings.isEmpty(selectedNodeConfigError) and selectedNodeConfig != null}">
                 <tr><th>Property</th><th>Value</th></tr>
-                <tr th:if="${selectedNodeConfig.currentNode != null}">
+
+                <tr>
                     <td>Current Node</td>
-                    <td th:text="${selectedNodeConfig.currentNode.nodeName} + ' (Hash: ' + ${selectedNodeConfig.currentNode.nodeHash} + ')'"></td>
+                    <td th:text="${selectedNodeConfig.currentNode != null ? selectedNodeConfig.currentNode.nodeName + ' (Hash: ' + selectedNodeConfig.currentNode.nodeHash + ')' : 'N/A'}"></td>
                 </tr>
-                <tr th:unless="${selectedNodeConfig.currentNode != null and selectedNodeConfigError == null}"><td>Current Node</td><td>N/A</td></tr>
-
-                <tr th:if="${selectedNodeConfig.previousNode != null}">
+                <tr>
                     <td>Previous Node</td>
-                    <td th:text="${selectedNodeConfig.previousNode.nodeName} + ' (' + ${selectedNodeConfig.previousNode.ipAddress} + ':' + ${selectedNodeConfig.previousNode.port} + ')'"></td>
+                    <td th:text="${selectedNodeConfig.previousNode != null ? selectedNodeConfig.previousNode.nodeName + ' (' + selectedNodeConfig.previousNode.ipAddress + ':' + selectedNodeConfig.previousNode.port + ')' : 'N/A'}"></td>
                 </tr>
-                <tr th:if="${selectedNodeConfig.previousNode == null and selectedNodeConfigError == null}">
-                    <td>Previous Node</td><td>N/A</td>
-                </tr>
-
-                <tr th:if="${selectedNodeConfig.nextNode != null}">
+                <tr>
                     <td>Next Node</td>
-                    <td th:text="${selectedNodeConfig.nextNode.nodeName} + ' (' + ${selectedNodeConfig.nextNode.ipAddress} + ':' + ${selectedNodeConfig.nextNode.port} + ')'"></td>
-                </tr>
-                <tr th:if="${selectedNodeConfig.nextNode == null and selectedNodeConfigError == null}">
-                    <td>Next Node</td><td>N/A</td>
+                    <td th:text="${selectedNodeConfig.nextNode != null ? selectedNodeConfig.nextNode.nodeName + ' (' + selectedNodeConfig.nextNode.ipAddress + ':' + selectedNodeConfig.nextNode.port + ')' : 'N/A'}"></td>
                 </tr>
             </table>
-            <p th:if="${selectedNodeConfig == null and !selectedNodeConfigError}" class="empty-state">Configuration data could not be loaded for this node.</p>
+            <!-- Message if no error but config couldn't be loaded (e.g. node API down) -->
+            <p th:if="${#strings.isEmpty(selectedNodeConfigError) and selectedNodeConfig == null}" class="empty-state">
+                Configuration data could not be loaded for this node.
+            </p>
         </div>
 
+        <!-- Files Card -->
         <div class="card">
             <h3>Files on <span th:text="${selectedNodeIdentifier}"></span></h3>
-            <div th:if="${selectedNodeFilesError}" class="error" th:text="${selectedNodeFilesError}"></div>
-            <table th:if="${selectedNodeFiles != null and !selectedNodeFiles.isEmpty()}">
-                <tr><th>File Name</th><th>Type</th></tr>
-                <tr th:each="file : ${selectedNodeFiles}">
-                    <td th:text="${file.fileName}"></td>
-                    <td th:text="${file.type}"></td>
-                </tr>
-            </table>
-            <p th:if="${(selectedNodeFiles == null or selectedNodeFiles.isEmpty()) and #strings.isEmpty(selectedNodeFilesError)}" class="empty-state">No files found on this node.</p>
-            <p th:if="${not #strings.isEmpty(selectedNodeFilesError)}" class="error" th:text="${selectedNodeFilesError}"></p>        </div>
+
+            <!-- Display file error if present -->
+            <div th:if="${not #strings.isEmpty(selectedNodeFilesError)}" class="error" th:text="${selectedNodeFilesError}"></div>
+
+            <!-- Local Files Section -->
+            <div th:if="${#strings.isEmpty(selectedNodeFilesError)}">
+                <h4>Local Files</h4>
+                <table th:if="${selectedNodeLocalFiles != null and not selectedNodeLocalFiles.isEmpty()}">
+                    <tr><th>File Name</th></tr>
+                    <tr th:each="fileName : ${selectedNodeLocalFiles}">
+                        <td th:text="${fileName}"></td>
+                    </tr>
+                </table>
+                <p th:if="${selectedNodeLocalFiles == null or selectedNodeLocalFiles.isEmpty()}" class="empty-state">
+                    No local files found on this node.
+                </p>
+
+                <h4 style="margin-top: 20px;">Replicated Files</h4>
+                <table th:if="${selectedNodeReplicatedFiles != null and not selectedNodeReplicatedFiles.isEmpty()}">
+                    <tr><th>File Name</th></tr>
+                    <tr th:each="fileName : ${selectedNodeReplicatedFiles}">
+                        <td th:text="${fileName}"></td>
+                    </tr>
+                </table>
+                <p th:if="${selectedNodeReplicatedFiles == null or selectedNodeReplicatedFiles.isEmpty()}" class="empty-state">
+                    No replicated files found on this node.
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 </body>

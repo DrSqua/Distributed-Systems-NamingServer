@@ -17,7 +17,7 @@ public class FileController {
 
     @Autowired
     public FileController(FileService fileService) {
-       this.fileService = fileService;
+        this.fileService = fileService;
     }
 
     // User calls the right node to download the file no extra checkups
@@ -33,7 +33,7 @@ public class FileController {
         }
         return new ResponseEntity<>(fileData, HttpStatus.OK);
     }
-    
+
     @PostMapping("/upload")
     @ResponseStatus(HttpStatus.CREATED)
     public void uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
