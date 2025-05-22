@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -26,7 +25,7 @@ public class FileController {
     // Maybe (if it has to) we can add here that we call the naming server ourselves
     @GetMapping("/{name}")
     public ResponseEntity<byte[]> downloadFile(@PathVariable String name) throws IOException {
-        byte[] fileData = fileService.readFile(name);
+        byte[] fileData = fileService.downloadFile(name);
 
         if (fileData == null) {
             return new ResponseEntity<>(("File " + name + " not found").getBytes(), HttpStatus.NOT_FOUND);
@@ -47,6 +46,11 @@ public class FileController {
         FileMessage message = new FileMessage(name, "DELETE_LOCAL", null);
         fileService.handleFileOperations(message);
         fileService.replicateToNeighbors(name, "DELETE_REPLICA", null);
+    }
+
+    @PostMapping("/edit/{name}")
+    public void editFile(@PathVariable String name) throws IOException {
+        fileService.editFile(name);
     }
 
     // Return a FileListResponse which has a localFileList and a replicatedFileList
