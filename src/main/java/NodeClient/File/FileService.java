@@ -28,8 +28,9 @@ public class FileService {
     public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) {
         try {
             Files.createDirectories(localPath);
+            Path filePath = localPath.resolve("file.txt");
             byte[] data = "Pooepieeeeeees".getBytes();
-            Files.write(localPath, data, StandardOpenOption.CREATE);
+            Files.write(filePath, data, StandardOpenOption.CREATE);
             Files.createDirectories(replicatedPath);
         } catch (IOException e) {
             e.printStackTrace();
