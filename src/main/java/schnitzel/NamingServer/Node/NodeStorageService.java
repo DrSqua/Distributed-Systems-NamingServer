@@ -19,6 +19,7 @@ public class NodeStorageService {
      * @param value NodeEntity object holding ipaddress, name, ..
      */
     public void put(Long key, NodeEntity value) {
+        System.out.println("key: " + key + ", value: " + value);
         dataMap.put(key, value);
     }
 
