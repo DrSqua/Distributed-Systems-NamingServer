@@ -52,10 +52,10 @@ public class ServerMulticastListener {
 
             // Specify network interface (optional, set to null for default)
             // local
-            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            // NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
 
             //remote
-            //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {

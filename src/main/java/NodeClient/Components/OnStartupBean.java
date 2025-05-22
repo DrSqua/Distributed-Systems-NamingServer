@@ -2,6 +2,7 @@ package NodeClient.Components;
 
 import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
+import Utilities.NodeEntity.NodeEntity;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -56,7 +57,19 @@ public class OnStartupBean {
             int numberOfNodes = Integer.parseInt(message);
             String namingServerIP = packet.getAddress().getHostAddress();
 
-            // TODO @Robbe store "numberOfNodes" in the storage
+            this.ringStorage.setCurrentNodeCount(numberOfNodes);
+            if (numberOfNodes > 1) {
+                // Neighbour information will be sent by other nodes in the network
+            } else {
+                // Else become his own neighbour
+                NodeEntity ownNode = new NodeEntity(
+                        clientIP,
+                        nodeName
+                );
+                this.ringStorage.setNode("NEXT", ownNode);
+                this.ringStorage.setNode("PREVIOUS", ownNode);
+            }
+
 
             System.out.println("namingServerIP stored in nodeStorage: "+namingServerIP);
             this.ringStorage.setNamingServerIP(namingServerIP);

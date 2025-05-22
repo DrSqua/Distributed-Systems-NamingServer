@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class RingStorage {
     private final ConcurrentHashMap<String, NodeEntity> dataMap = new ConcurrentHashMap<>();
+    int nodeCount = 0;
 
     private String namingServerIP;
     public NodeEntity setNode(String direction, NodeEntity node) {
@@ -20,6 +21,14 @@ public class RingStorage {
 
     public Optional<NodeEntity> getNode(String direction) {
         return Optional.ofNullable(dataMap.getOrDefault(direction, null));
+    }
+
+    public void setCurrentNodeCount(int nodeCount) {
+        this.nodeCount = nodeCount;
+    }
+
+    public int getCurrentNodeCount() {
+        return this.nodeCount;
     }
 
     public String currentName() {

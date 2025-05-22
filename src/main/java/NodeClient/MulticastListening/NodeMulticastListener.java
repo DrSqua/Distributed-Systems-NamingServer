@@ -43,7 +43,6 @@ public class NodeMulticastListener {
 
     private void listen() {
         try (MulticastSocket socket = new MulticastSocket(PORT)) {
-            InetAddress groupIP = InetAddress.getByName(this.groupIP);
             this.multicast.JoinMulticast();
             byte[] buffer = new byte[1024];
             while (true) {
@@ -53,7 +52,11 @@ public class NodeMulticastListener {
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 Long hashedNodeName = NamingServerHash.hashNode(nodeName, nodeIP);
+
+                // Received the startup broadcast from new node
+                // ReceivedNode is new node
                 NodeEntity receivedNode = new NodeEntity(nodeIP, nodeName);
+                this.ringStorage.setCurrentNodeCount(this.ringStorage.getCurrentNodeCount() + 1);
 
                 NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
                         new IllegalStateException("Existing Node does not have next set")
