@@ -25,11 +25,15 @@ public class FileService {
     private final Map<String, Boolean> fileLockingStates = new ConcurrentHashMap<>();
 
     @Autowired
-    public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) throws IOException {
-        Files.createDirectories(localPath);
-        byte[] data = "Pooepieeeeeees".getBytes();
-        Files.write(localPath, data, StandardOpenOption.CREATE);
-        Files.createDirectories(replicatedPath);
+    public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) {
+        try {
+            Files.createDirectories(localPath);
+            byte[] data = "Pooepieeeeeees".getBytes();
+            Files.write(localPath, data, StandardOpenOption.CREATE);
+            Files.createDirectories(replicatedPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.ringStorage = ringStorage;
         this.fileLoggerService = fileLoggerService;
     }
