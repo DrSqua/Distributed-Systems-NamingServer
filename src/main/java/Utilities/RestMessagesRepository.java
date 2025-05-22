@@ -6,8 +6,10 @@ import Utilities.NodeEntity.NodeEntity;
 import Utilities.NodeEntity.NodeEntityIn;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.ConnectException;
 import java.util.List;
 
 public class RestMessagesRepository {
@@ -16,10 +18,45 @@ public class RestMessagesRepository {
 
     public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) {
         RestTemplate restTemplate = new RestTemplate();
+        //int nodePort = 8081;
         try {
+            //String url = "http://" + neighbour.getIpAddress() + ":"+ nodePort +"/ring/" + direction;
+            //int i = 1;
+//            for (i =1; i<50000; i++) {
+//                try {
+//                    String url = "http://" + neighbour.getIpAddress() + ":"+ i +"/ring/" + direction;
+//
+//                    HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
+//                    restTemplate.postForEntity(url, request, Void.class);
+//                    System.out.println("Updated neighbour port:" + i);
+//                }catch (Exception e) {
+//
+//                }
+//            }
+
+            // Tomcat is often still not initialised when asking to set the neighbours so give it some extra time
+            // this will make sure we can send the message when everything is set
+
             String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
-            HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
-            restTemplate.postForEntity(url, request, Void.class);
+            for(int i=0; i<5; i++){
+                try {
+                    HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
+                    restTemplate.postForEntity(url, request, Void.class);
+                    return;
+                } catch(ResourceAccessException e) {
+                    // only retry on connection refused
+                    if(e.getCause() instanceof ConnectException){
+                        Thread.sleep(500);
+                        continue;
+                    }
+                    throw e;
+                }
+            }
+            System.err.println("Still failing to connect to " + url);
+//            String url = "http://" + neighbour.getIpAddress() + ":"+ 50000 +"/ring/" + direction;
+//
+//            HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
+//            restTemplate.postForEntity(url, request, Void.class);
         } catch (Exception e) {
             System.err.println("Failed to update " + direction + " on node " + neighbour.getIpAddress());
             e.printStackTrace();
