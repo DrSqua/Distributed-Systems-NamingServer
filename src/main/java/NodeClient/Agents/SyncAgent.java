@@ -52,7 +52,6 @@ public class SyncAgent extends Agent {
         NodeEntity previousNode = ringStorage.getNode("PREVIOUS").orElse(null);
         syncWithNeighbor(nextNode, localFileSet);
         syncWithNeighbor(previousNode, localFileSet);
-
     }
 
     private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException {
@@ -64,7 +63,7 @@ public class SyncAgent extends Agent {
                 byte[] data = fileService.readFile(fileName);
                 if (data != null) {
                     FileMessage message = new FileMessage(fileName, "REPLICATE", data);
-                    RestMessagesRepository.handleTransfer(message, node.getIpAddress());
+                    RestMessagesRepository.handleFileOperations(message, node.getIpAddress());
                 }
             }
         }

@@ -64,7 +64,7 @@ public class OnShutdownBean {
                 NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
                         new IllegalStateException("Existing Node does not have previous set")
                 );
-                FileMessage message = new FileMessage(fileName, "TRANSFER", Files.readAllBytes(file.toPath()));
+                FileMessage message = new FileMessage(fileName, "TRANSFER_LOCAL", Files.readAllBytes(file.toPath()));
                 RestMessagesRepository.handleTransfer(message, previousNode.getIpAddress());
 
             }
@@ -105,7 +105,7 @@ public class OnShutdownBean {
             }
             byte[] data = Files.readAllBytes(file.toPath());
             // first transfer to the target node
-            FileMessage transferMessage = new FileMessage(fileName, "TRANSFER", data);
+            FileMessage transferMessage = new FileMessage(fileName, "TRANSFER_REPLICA", data);
             RestMessagesRepository.handleTransfer(transferMessage, targetNode.getIpAddress());
             // then delete the file
             FileMessage deleteMessage = new FileMessage(fileName, "DELETE_REPLICA", null);

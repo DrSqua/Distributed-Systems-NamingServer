@@ -63,11 +63,11 @@ public class RestMessagesRepository {
     }
 
     public static void handleFileOperations(FileMessage message, String targetNodeIp) {
-        new RestTemplate().postForObject("http://" + targetNodeIp + ":" + namingServerPort + "/node/file/replication", message, Void.class);
+        new RestTemplate().postForObject("http://" + targetNodeIp + ":" + nodeClientPort + "/node/file/replication", message, Void.class);
     }
 
     public static void handleTransfer(FileMessage message, String targetNodeIp) {
-        new RestTemplate().postForObject("http://" + targetNodeIp + ":" + namingServerPort + "/node/file/transfer", message, Void.class);
+        new RestTemplate().postForObject("http://" + targetNodeIp + ":" + nodeClientPort + "/node/file/transfer", message, Void.class);
     }
 
     public static NodeEntity getFileOwner(long FileHash, String namingServerIp) {

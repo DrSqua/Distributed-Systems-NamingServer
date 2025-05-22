@@ -70,13 +70,21 @@ public class FileService {
     public void handleTransfer(FileMessage message) throws IOException {
         String fileName = message.fileName();
         long fileHash = NamingServerHash.hash(fileName);
-        Path targetPath = replicatedPath.resolve(fileName);
+        String operation = message.operation();
+        Path targetPath = null;
+        if (operation.equals("TRANSFER_LOCAL")) {
+            targetPath = localPath.resolve(fileName);
+        }
+        else if (operation.equals("TRANSFER_REPLICA")) {
+            targetPath = replicatedPath.resolve(fileName);
+        }
+        assert targetPath != null;
         Files.write(targetPath, message.fileData(), StandardOpenOption.CREATE);
         // write the previous logs before transfer
         List<FileLogEntry> logs = fileLoggerService.getLogsForFile(fileName);
         fileLoggerService.writeLogs(logs);
         // write the transfer log
-        fileLoggerService.logOperation(fileName, fileHash, message.operation(), String.valueOf(targetPath));
+        fileLoggerService.logOperation(fileName, fileHash, operation, String.valueOf(targetPath));
     }
 
     // handle "DOWNLOAD" operation
