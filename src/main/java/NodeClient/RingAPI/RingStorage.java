@@ -23,6 +23,10 @@ public class RingStorage {
         return Optional.ofNullable(dataMap.getOrDefault(direction, null));
     }
 
+    public NodeEntity getSelf() throws UnknownHostException {
+        return new NodeEntity(InetAddress.getLocalHost().toString(), this.currentName());
+    }
+
     public void setCurrentNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
     }
