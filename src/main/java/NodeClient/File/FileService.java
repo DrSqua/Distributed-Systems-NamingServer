@@ -12,7 +12,10 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 public class FileService {
@@ -28,9 +31,6 @@ public class FileService {
     public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) {
         try {
             Files.createDirectories(localPath);
-            Path filePath = localPath.resolve("file.txt");
-            byte[] data = "Pooepieeeeeees".getBytes();
-            Files.write(filePath, data, StandardOpenOption.CREATE);
             Files.createDirectories(replicatedPath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -41,6 +41,13 @@ public class FileService {
 
     public FileLoggerService getFileLoggerService() {
         return fileLoggerService;
+    }
+
+    public Set<String> getLockedFiles() {
+        return fileLockingStates.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
     }
 
     // handle all file operations except "TRANSFER"s and "DOWNLOAD"s (because they work different)
@@ -68,6 +75,13 @@ public class FileService {
                 targetPath = replicatedFilePath;
                 Files.deleteIfExists(targetPath);
                 break;
+            // targetPath doesn't really matter here
+            case "LOCKED":
+                lockFile(fileName);
+                break;
+            case "UNLOCKED":
+                unlockFile(fileName);
+                break;
         }
         fileLoggerService.logOperation(fileName, fileHash, operation, String.valueOf(targetPath));
     }
@@ -94,7 +108,7 @@ public class FileService {
     }
 
     // handle "DOWNLOAD" operation
-    public byte[] readFile(String fileName) throws IOException {
+    public byte[] downloadFile(String fileName) throws IOException {
         long fileHash = NamingServerHash.hash(fileName);
         // we only need to check the localPath as the naming server already checked for ownership
         Path filePath = localPath.resolve(fileName);
@@ -106,30 +120,36 @@ public class FileService {
     }
 
     public void replicateToNeighbors(String fileName, String operation, byte[] data) {
-        FileMessage message = new FileMessage(fileName, operation, data);
-        try {
-            // Getting next node and its IP
-            NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
-                    new IllegalStateException("Existing Node does not have next set")
-            );
-            String nextIpAddress = nextNode.getIpAddress();
-            // Send a Post request to next node for file replication
-            RestMessagesRepository.handleFileOperations(message, nextIpAddress);
-            // Getting previous node and its IP
-            NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
-                    new IllegalStateException("Existing Node does not have previous set")
-            );
-            String previousIpAddress = previousNode.getIpAddress();
-            // Send a Post request to previous node for file replication
-            RestMessagesRepository.handleFileOperations(message, previousIpAddress);
-        } catch (Exception e) {
-            e.printStackTrace();
+        // if there is only 1 neighbor
+        if (ringStorage.getCurrentNodeCount() == 2) {
+            replicateToOneNeighbor(fileName, operation, data);
+        }
+        // if there is more than 1 neighbor
+        else if (ringStorage.getCurrentNodeCount() >= 3) {
+            FileMessage message = new FileMessage(fileName, operation, data);
+            try {
+                // Getting next node and its IP
+                NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
+                        new IllegalStateException("Existing Node does not have next set")
+                );
+                String nextIpAddress = nextNode.getIpAddress();
+                // Send a Post request to next node for file replication
+                RestMessagesRepository.handleFileOperations(message, nextIpAddress);
+                // Getting previous node and its IP
+                NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
+                        new IllegalStateException("Existing Node does not have previous set")
+                );
+                String previousIpAddress = previousNode.getIpAddress();
+                // Send a Post request to previous node for file replication
+                RestMessagesRepository.handleFileOperations(message, previousIpAddress);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    public void replicateToOneNeighbor(String fileName, String operation, byte[] data) {
+    private void replicateToOneNeighbor(String fileName, String operation, byte[] data) {
         FileMessage message = new FileMessage(fileName, operation, data);
-        try {
             // Getting next node and its IP
             NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
                     new IllegalStateException("Existing Node does not have next set")
@@ -137,9 +157,6 @@ public class FileService {
             String nextIpAddress = nextNode.getIpAddress();
             // Send a Post request to next node for file replication
             RestMessagesRepository.handleFileOperations(message, nextIpAddress);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -164,19 +181,38 @@ public class FileService {
                 .toList();
     }
 
-    public void lockFile(String fileName) {
+    public void editFile(String fileName) throws IOException {
+        if (isFileLocked(fileName)) {
+            System.out.println("File is locked");
+            return;
+        }
+        // lock file and replicate to neighbors that they need to lock as well
+        handleFileOperations(new FileMessage(fileName, "LOCKED", null));
+        replicateToNeighbors(fileName, "LOCKED", null);
+        System.out.println("Editing file: " + fileName);
+        //
+        // EDITING FILE...
+        // Simulate with sleeping 10 seconds
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // after editing unlock the files again
+        handleFileOperations(new FileMessage(fileName, "UNLOCKED", null));
+        replicateToNeighbors(fileName, "UNLOCKED", null);
+        System.out.println("Finished editing file: " + fileName);
+    }
+
+    private void lockFile(String fileName) {
         fileLockingStates.put(fileName, true);
     }
 
-    public void unlockFile(String fileName) {
+    private void unlockFile(String fileName) {
         fileLockingStates.put(fileName, false);
     }
 
-    public boolean isFileLocked(String fileName) {
+    private boolean isFileLocked(String fileName) {
         return fileLockingStates.getOrDefault(fileName, false);
-    }
-
-    public Map<String, Boolean> getCurrentLockingStates() {
-        return fileLockingStates;
     }
 }

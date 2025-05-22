@@ -71,14 +71,7 @@ public class FileCheckerBean {
             String response = RestMessagesRepository.checkReplicationResponsibility(fileHash, ringStorage.currentHash(), ringStorage.getNamingServerIP());
             if ("REPLICATE".equalsIgnoreCase(response)) {
                 byte[] data = Files.readAllBytes(file.toPath());
-                // only replicate to 1 neighbor if only 1 other node exist
-                if (ringStorage.getCurrentNodeCount() == 2) {
-                    fileService.replicateToOneNeighbor(fileName, "REPLICATE", data);
-                }
-                // if more than 1 neighbor we can replicate to previous and next neighbor
-                else if (ringStorage.getCurrentNodeCount() >= 3) {
-                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
-                }
+                fileService.replicateToNeighbors(fileName, "REPLICATE", data);
             }
         }
     }
@@ -105,28 +98,7 @@ public class FileCheckerBean {
                 if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
                     knownFiles.put(fileName, fileHash);
                     byte[] data = Files.readAllBytes(localFile.toPath());
-                    // only replicate to 1 neighbor if only 1 other node exist
-                    if (ringStorage.getCurrentNodeCount() == 2) {
-                        fileService.replicateToOneNeighbor(fileName, "REPLICATE", data);
-                    }
-                    // if more than 1 neighbor we can replicate to previous and next neighbor
-                    else if (ringStorage.getCurrentNodeCount() >= 3) {
-                        fileService.replicateToNeighbors(fileName, "REPLICATE", data);
-                    }
-                    /*
-                    NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
-                            new IllegalStateException("Existing Node does not have next set")
-                    );
-                    NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
-                            new IllegalStateException("Existing Node does not have previous set")
-                    );
-                    if (nextNode.getNodeHash() == this.ringStorage.currentHash() ||
-                            previousNode.getNodeHash() == this.ringStorage.currentHash()) {
-                        // :)
-                    } else {
-                        // fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
-                    }
-                    */
+                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
                 }
             }
             Thread.sleep(5000);
