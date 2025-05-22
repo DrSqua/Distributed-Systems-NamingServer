@@ -2,6 +2,7 @@ package NodeClient.Components;
 
 import NodeClient.File.FileService;
 import NodeClient.RingAPI.RingStorage;
+import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,19 @@ public class FileCheckerBean {
                 long fileHash = NamingServerHash.hash(fileName);
                 if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
                     knownFiles.put(fileName, fileHash);
-                    fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
+
+                    NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
+                            new IllegalStateException("Existing Node does not have next set")
+                    );
+                    NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
+                            new IllegalStateException("Existing Node does not have previous set")
+                    );
+                    if (nextNode.getNodeHash() == this.ringStorage.currentHash() ||
+                            previousNode.getNodeHash() == this.ringStorage.currentHash()) {
+                        // :)
+                    } else {
+                        // fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
+                    }
                 }
             }
             Thread.sleep(5000);

@@ -49,6 +49,7 @@ public class NodeMulticastListener {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
+                System.out.println("node received a multicast message of a new node (prev/next): "+message);
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 Long hashedNodeName = NamingServerHash.hashNode(nodeName, nodeIP);

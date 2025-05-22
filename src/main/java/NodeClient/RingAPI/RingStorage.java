@@ -37,7 +37,7 @@ public class RingStorage {
 
     public Long currentHash() throws UnknownHostException {
         return NamingServerHash.hashNode(this.currentName(),
-                InetAddress.getByName(String.valueOf(InetAddress.getLocalHost())).toString()); // :)
+                InetAddress.getLocalHost().toString()); // :)
     }
 
     public String getNamingServerIP() {
