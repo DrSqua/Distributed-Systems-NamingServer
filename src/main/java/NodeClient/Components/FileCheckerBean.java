@@ -36,8 +36,9 @@ public class FileCheckerBean {
     }
 
     private void startup() {
-        // Check if discovery is done
-        while (ringStorage.getNode("PREVIOUS").isEmpty() || ringStorage.getNode("NEXT").isEmpty()) {
+        // Check if there are more than 1 node on our system
+        // ,so we have a node to replicate to
+        while (ringStorage.getCurrentNodeCount() <= 1) {
             try {
                 // Wait 0.5 seconds before checking again
                 Thread.sleep(500);
@@ -70,7 +71,14 @@ public class FileCheckerBean {
             String response = RestMessagesRepository.checkReplicationResponsibility(fileHash, ringStorage.currentHash(), ringStorage.getNamingServerIP());
             if ("REPLICATE".equalsIgnoreCase(response)) {
                 byte[] data = Files.readAllBytes(file.toPath());
-                fileService.replicateToNeighbors(fileName, "REPLICATE", data);
+                // only replicate to 1 neighbor if only 1 other node exist
+                if (ringStorage.getCurrentNodeCount() == 2) {
+                    fileService.replicateToOneNeighbor(fileName, "REPLICATE", data);
+                }
+                // if more than 1 neighbor we can replicate to previous and next neighbor
+                else if (ringStorage.getCurrentNodeCount() >= 3) {
+                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
+                }
             }
         }
     }
@@ -78,6 +86,11 @@ public class FileCheckerBean {
     // Check every 5 seconds for changes on localFolder for replication
     private void checkFiles() throws InterruptedException, IOException {
         while (true) {
+            // check if we have a node to replicate to
+            if (ringStorage.getCurrentNodeCount() <= 1) {
+                Thread.sleep(500);
+                continue;
+            }
             File[] files = filePathLocal.toFile().listFiles();
             // Guard clause
             if (files == null) {
@@ -91,7 +104,16 @@ public class FileCheckerBean {
                 long fileHash = NamingServerHash.hash(fileName);
                 if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
                     knownFiles.put(fileName, fileHash);
-
+                    byte[] data = Files.readAllBytes(localFile.toPath());
+                    // only replicate to 1 neighbor if only 1 other node exist
+                    if (ringStorage.getCurrentNodeCount() == 2) {
+                        fileService.replicateToOneNeighbor(fileName, "REPLICATE", data);
+                    }
+                    // if more than 1 neighbor we can replicate to previous and next neighbor
+                    else if (ringStorage.getCurrentNodeCount() >= 3) {
+                        fileService.replicateToNeighbors(fileName, "REPLICATE", data);
+                    }
+                    /*
                     NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
                             new IllegalStateException("Existing Node does not have next set")
                     );
@@ -104,6 +126,7 @@ public class FileCheckerBean {
                     } else {
                         // fileService.replicateToNeighbors(fileName,"REPLICATE", Files.readAllBytes(localFile.toPath()));
                     }
+                    */
                 }
             }
             Thread.sleep(5000);

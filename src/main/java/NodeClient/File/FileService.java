@@ -127,6 +127,21 @@ public class FileService {
         }
     }
 
+    public void replicateToOneNeighbor(String fileName, String operation, byte[] data) {
+        FileMessage message = new FileMessage(fileName, operation, data);
+        try {
+            // Getting next node and its IP
+            NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
+                    new IllegalStateException("Existing Node does not have next set")
+            );
+            String nextIpAddress = nextNode.getIpAddress();
+            // Send a Post request to next node for file replication
+            RestMessagesRepository.handleFileOperations(message, nextIpAddress);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Returns a list of names of files stored locally that are owned by this node.
      * @return List of local file names, or empty list if none or error.
