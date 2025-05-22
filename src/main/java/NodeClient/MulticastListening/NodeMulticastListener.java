@@ -53,7 +53,7 @@ public class NodeMulticastListener {
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 Long hashedNodeName = NamingServerHash.hashNode(nodeName, nodeIP);
-                NodeEntity receivedNode = new NodeEntity(nodeIP, hashedNodeName, nodeName);
+                NodeEntity receivedNode = new NodeEntity(nodeIP, nodeName);
 
                 NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
                         new IllegalStateException("Existing Node does not have next set")

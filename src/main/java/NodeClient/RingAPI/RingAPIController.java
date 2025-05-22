@@ -30,7 +30,6 @@ public class RingAPIController {
                          HttpServletRequest request) {
         NodeEntity newNodeEntity = new NodeEntity(
                 request.getRemoteAddr(),
-                NamingServerHash.hashNode(nodeEntityIn.nodeName, request.getRemoteAddr()),
                 nodeEntityIn.nodeName
         );
         return ringStorage.setNode(direction, newNodeEntity);
