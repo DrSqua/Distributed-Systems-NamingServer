@@ -5,7 +5,6 @@ import NodeClient.RingAPI.RingStorage;
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import schnitzel.NamingServer.NamingServerHash;
 
@@ -28,6 +27,8 @@ public class FileService {
     @Autowired
     public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) throws IOException {
         Files.createDirectories(localPath);
+        byte[] data = "Pooepieeeeeees".getBytes();
+        Files.write(localPath, data, StandardOpenOption.CREATE);
         Files.createDirectories(replicatedPath);
         this.ringStorage = ringStorage;
         this.fileLoggerService = fileLoggerService;
