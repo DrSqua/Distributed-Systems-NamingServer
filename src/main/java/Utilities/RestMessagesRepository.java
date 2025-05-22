@@ -22,6 +22,7 @@ public class RestMessagesRepository {
             restTemplate.postForEntity(url, request, Void.class);
         } catch (Exception e) {
             System.err.println("Failed to update " + direction + " on node " + neighbour.getIpAddress());
+            e.printStackTrace();
         }
     }
 

@@ -57,26 +57,23 @@ public class OnStartupBean {
             int numberOfNodes = Integer.parseInt(message);
             String namingServerIP = packet.getAddress().getHostAddress();
 
+            // Storing node count
             this.ringStorage.setCurrentNodeCount(numberOfNodes);
-            if (numberOfNodes > 1) {
-                // Neighbour information will be sent by other nodes in the network
-            } else {
-                // Else become his own neighbour
+
+            // Neighbour information will be sent by other nodes in the network if there are any
+            if (numberOfNodes == 1) {
+                System.out.println("Setting self as neighbour");
+                // Become own neighbour
                 NodeEntity ownNode = new NodeEntity(
                         clientIP,
                         nodeName
                 );
                 this.ringStorage.setNode("NEXT", ownNode);
                 this.ringStorage.setNode("PREVIOUS", ownNode);
+            } else {
+                System.out.println("Waiting for other nodes to give");
             }
-
-
-            System.out.println("namingServerIP stored in nodeStorage: "+namingServerIP);
             this.ringStorage.setNamingServerIP(namingServerIP);
-
-            // Arbitrary logging
-            System.out.println("Node information sent: " + nodeName);
-
 
         } catch (IOException e) {
             e.printStackTrace();

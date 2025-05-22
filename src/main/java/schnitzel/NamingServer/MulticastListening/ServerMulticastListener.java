@@ -66,9 +66,6 @@ public class ServerMulticastListener {
             socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
             System.out.println("Joined group: " + group.getHostAddress() + ":"+PORT);
 
-
-
-
             byte[] buffer = new byte[1024];
             while(true){
                 DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
