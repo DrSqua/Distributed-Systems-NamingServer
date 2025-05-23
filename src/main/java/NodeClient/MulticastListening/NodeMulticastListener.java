@@ -112,25 +112,23 @@ public class NodeMulticastListener {
                  */
                 NodeEntity currentNode = this.ringStorage.getSelf();
                 if (this.ringStorage.getCurrentNodeCount() == 2) {
+                    // fixme this will break when nodes are turned off and then turned on again
+                    // todo, instead of checking if nodeCount is 2, check if both own neighbours are self -> same effect
                     // 2 because the current has already been updated a couple lines earlier
-                    System.out.println("Received neighbour, only 2 total in network so setting both neighbours for received node");
+                    // System.out.println("Received neighbour, only 2 total in network so setting both neighbours for received node");
                     // Setting on local
                     ringStorage.setNode("NEXT", receivedNode);
                     ringStorage.setNode("PREVIOUS", receivedNode);
-
                     // Setting on remote
-                    System.out.println("received node is " + receivedNode);
-                    System.out.println("currentNode is " + currentNode.asEntityIn());
                     RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
                 } else if (this.ringStorage.currentHash() < hashedOtherNode && hashedOtherNode < nextNode.getNodeHash()) {
-                    System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
-                    NodeEntity temp =  this.ringStorage.setNode("NEXT", receivedNode);
-                    System.out.println("Storage set node:" + temp);
+                    // System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
+                    this.ringStorage.setNode("NEXT", receivedNode);
                     RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
                 } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
-                    System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
+                    // System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
                     this.ringStorage.setNode("PREVIOUS", receivedNode);
                     RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);

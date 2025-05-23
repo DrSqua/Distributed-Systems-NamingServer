@@ -29,7 +29,6 @@ public class RingAPIController {
     NodeEntity set_neighbour(@PathVariable String direction,
                          @RequestBody NodeEntity nodeEntityIn,
                          HttpServletRequest request) throws UnknownHostException {
-        System.out.println(ringStorage.getOwnIp() + " is setting " + direction + " to " + nodeEntityIn);
         return ringStorage.setNode(direction, nodeEntityIn);
     }
 

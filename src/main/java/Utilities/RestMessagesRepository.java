@@ -3,16 +3,11 @@ package Utilities;
 import NodeClient.File.FileListResponse;
 import NodeClient.File.FileMessage;
 import Utilities.NodeEntity.NodeEntity;
-import Utilities.NodeEntity.NodeEntityIn;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
 
 public class RestMessagesRepository {
     private static final int nodeClientPort = 8081;
@@ -66,11 +61,12 @@ public class RestMessagesRepository {
     public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) throws InterruptedException, UnknownHostException {
         // Tell neighbours they are now each other's neighbour
         // Only if neighbour is not self
-        if (!node.equals(previousNeighbour) && !node.equals(nextNeighbour)) {
+        if (!node.equals(nextNeighbour)) {
             RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour);
+        }
+        if (!node.equals(previousNeighbour)) {
             RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour);
         }
-
         // Notify server we are leaving system
         RestMessagesRepository.removeFromNamingServer(node, namingServerIP);
     }
