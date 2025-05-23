@@ -36,6 +36,7 @@ public class NodeController {
 
     @DeleteMapping("/node/{nodeHash}")
     void delete(@PathVariable Long nodeHash) {
+        System.out.println("Deleting node with hash " + nodeHash);
         if (!nodeStorageService.existsById(nodeHash)) {
             throw new RuntimeException("Node with hash " + nodeHash + " doesn't exist. Cannot delete it.");
         }
