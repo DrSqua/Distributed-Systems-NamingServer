@@ -91,39 +91,56 @@ public class NodeMulticastListener {
                             new IllegalStateException("Existing Node does not have previous set")
                     );
                     /*
+                     * If only one node in network, neighbours are self
+                     *
                      * If currentID < hash < nextID, nexID=hash, current node updates its own parameter nextID,
                      * and sends response to node giving the information on currentID and nextID
                      *
                      * If previousID < hash < currentID, previousID=hash, current node updates its own parameter previousID,
                      * and sends response to node giving the information on currentID and previousID
+                     *
+                     * If hash > currentID AND currentID is highest (both neighbours are smaller)
+                     * Give new node "next=currentNext & previous=self"
+                     * Give next as "previous=hash"
+                     * Set own next=hash
                      */
 
-                    if (this.ringStorage.currentHash() < hashedOtherNode && hashedOtherNode < nextNode.getNodeHash()) {
-                        System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
-                        this.ringStorage.setNode("NEXT", receivedNode);
-                        RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode.asEntityIn());
-                    } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
-                        System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]"  + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() +  "region, updating!");
-                        this.ringStorage.setNode("PREVIOUS", receivedNode);
-                        RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
-                    } else if (this.ringStorage.getCurrentNodeCount() == 2) {
-                        // 2 because the current has already has been updated a couple lines earlier
-                        System.out.println("Received hash does not fall in [NEXT, PREVIOUS] region, updating to self!");
+                    NodeEntity currentNode = this.ringStorage.getSelf();
+                    if (this.ringStorage.getCurrentNodeCount() == 2) {
+                        // 2 because the current has already been updated a couple lines earlier
+                        System.out.println("Received neighbour, only 2 total in network so setting both neighbours for received node");
                         // Setting on local
                         ringStorage.setNode("NEXT", receivedNode);
                         ringStorage.setNode("PREVIOUS", receivedNode);
 
                         // Setting on remote
-                        NodeEntity currentNode = this.ringStorage.getSelf();
                         System.out.println("received node is " + receivedNode);
-                        System.out.println("cuurentNode is " + currentNode.asEntityIn());
+                        System.out.println("currentNode is " + currentNode.asEntityIn());
                         RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode.asEntityIn());
                         RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode.asEntityIn());
+                    } else if (this.ringStorage.currentHash() < hashedOtherNode && hashedOtherNode < nextNode.getNodeHash()) {
+                         System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
+                         this.ringStorage.setNode("NEXT", receivedNode);
+                         RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode.asEntityIn());
+                    } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
+                         System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]"  + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() +  "region, updating!");
+                         this.ringStorage.setNode("PREVIOUS", receivedNode);
+                         RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
+                    }
+                    else if (this.ringStorage.currentHash() > hashedOtherNode && this.ringStorage.currentIsLargest()) {
+                         // Adjust PREVIOUS's NEXT to received
+                         RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
+
+                         // Give the new node correct neighbours
+                         RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode.asEntityIn());
+                         RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", nextNode.asEntityIn());
+
+                        // Adjust own next
+                        this.ringStorage.setNode("NEXT", receivedNode);
                     }
                     else {
                         throw new IllegalStateException("Unexpected state");
                     }
-
                 }
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();

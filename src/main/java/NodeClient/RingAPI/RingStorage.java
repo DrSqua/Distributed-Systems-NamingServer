@@ -39,6 +39,16 @@ public class RingStorage {
         return System.getProperty("user.name");
     }
 
+    public boolean currentIsLargest() throws UnknownHostException {
+        NodeEntity nextNode = this.getNode("NEXT").orElseThrow(() ->
+                new IllegalStateException("Existing Node does not have next set")
+        );
+        NodeEntity previousNode = this.getNode("PREVIOUS").orElseThrow(() ->
+                new IllegalStateException("Existing Node does not have previous set")
+        );
+        return nextNode.getNodeHash() > currentHash() && previousNode.getNodeHash() > currentHash();
+    }
+
     public String getOwnIp() throws UnknownHostException {
         String ownIp = InetAddress.getLocalHost().getHostAddress();
         System.out.println("Own IP: " + ownIp);
