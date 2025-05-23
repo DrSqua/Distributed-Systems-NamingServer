@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
-import schnitzel.NamingServer.NamingServerHash;
 
 import java.net.ConnectException;
 import java.util.List;
@@ -19,49 +18,9 @@ public class RestMessagesRepository {
 
     public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) {
         RestTemplate restTemplate = new RestTemplate();
-        //int nodePort = 8081;
-        try {
-            //String url = "http://" + neighbour.getIpAddress() + ":"+ nodePort +"/ring/" + direction;
-            //int i = 1;
-//            for (i =1; i<50000; i++) {
-//                try {
-//                    String url = "http://" + neighbour.getIpAddress() + ":"+ i +"/ring/" + direction;
-//
-//                    HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
-//                    restTemplate.postForEntity(url, request, Void.class);
-//                    System.out.println("Updated neighbour port:" + i);
-//                }catch (Exception e) {
-//
-//                }
-//            }
-
-            // Tomcat is often still not initialised when asking to set the neighbours so give it some extra time
-            // this will make sure we can send the message when everything is set
-
-            String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
-            for(int i=0; i<5; i++){
-                try {
-                    HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
-                    restTemplate.postForEntity(url, request, Void.class);
-                    return;
-                } catch(ResourceAccessException e) {
-                    // only retry on connection refused
-                    if(e.getCause() instanceof ConnectException){
-                        Thread.sleep(500);
-                        continue;
-                    }
-                    throw e;
-                }
-            }
-            System.err.println("Still failing to connect to " + url);
-//            String url = "http://" + neighbour.getIpAddress() + ":"+ 50000 +"/ring/" + direction;
-//
-//            HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
-//            restTemplate.postForEntity(url, request, Void.class);
-        } catch (Exception e) {
-            System.err.println("Failed to update " + direction + " on node " + neighbour.getIpAddress());
-            e.printStackTrace();
-        }
+        String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
+        HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
+        restTemplate.postForEntity(url, request, Void.class);
     }
 
     public static NodeEntity getNeighbor(NodeEntity node, String direction) {
@@ -77,10 +36,10 @@ public class RestMessagesRepository {
     public static void removeFromNamingServer(NodeEntity node, String namingServerIP) {
         RestTemplate restTemplate = new RestTemplate();
         try {
-            String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeHash();
-            System.out.println("Removing self (" + node.getNodeName() + ") from naming server at " + url);
+            String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeName();
             HttpEntity<String> request = new HttpEntity<>(null);
             restTemplate.delete(url, request, Void.class);
+            System.out.println("Removing self (" + node.getNodeName() + ") from naming server ");
         } catch (Exception e) {
             // TODO - what if we are already in the exception throwing?
         }
@@ -94,9 +53,11 @@ public class RestMessagesRepository {
 
     public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) {
         // Tell neighbours they are now each other's neighbour
-        // fixme, add neighbour messaging (but only if the neighbours are not self)
-//      // RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
-//      // RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
+        // Only if neighbour is not self
+        if (!node.equals(previousNeighbour) && !node.equals(nextNeighbour)) {
+            RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
+            RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
+        }
 
         // Notify server we are leaving system
         RestMessagesRepository.removeFromNamingServer(node, namingServerIP);

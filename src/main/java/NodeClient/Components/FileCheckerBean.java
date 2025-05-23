@@ -32,10 +32,20 @@ public class FileCheckerBean {
 
     @PostConstruct
     public void start() {
-        new Thread(this::startup).start();
+        new Thread(() -> {
+            try {
+                startup();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
     }
 
-    private void startup() {
+    private void startup() throws InterruptedException {
+        // Tomcat is often still not initialised when asking to set the neighbours so give it some extra time
+        // this will make sure we can send the message when everything is set
+        Thread.sleep(750);
+
         // Check if there are more than 1 node on our system
         // ,so we have a node to replicate to
         while (ringStorage.getCurrentNodeCount() <= 1) {
