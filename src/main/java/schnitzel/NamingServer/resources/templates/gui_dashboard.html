@@ -137,9 +137,7 @@
             <form th:action="@{/gui/node/remove}" method="post" style="display: inline;">
                 <input type="hidden" name="node_ip" th:value="${node.ipAddress}" />
                 <input type="hidden" name="node_hash" th:value="${node.nodeHash}" />
-                <button type="submit" class="action-button icon-remove-btn"
-                th:title="'Shutdown node: ' + ${node.nodeName} + ' (' + ${node.ipAddress} + ')'"
-                th:attr="onclick='return confirm(\'Are you sure you want to send SHUTDOWN signal to node: ' + ${node.nodeName} + ' (' + ${node.ipAddress} + ')? This node will then de-register itself.\');'" >
+                <button type="submit" class="action-button icon-remove-btn">
                 <!-- SVG Garbage Can Icon -->
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
