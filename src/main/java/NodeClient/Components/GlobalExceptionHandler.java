@@ -20,6 +20,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) throws Exception {
+        System.out.println("Global exception caught: " + e.getMessage());
         // Check if the node has any neighbours
         Optional<NodeEntity> nextNode = this.ringStorage.getNode("NEXT");
         Optional<NodeEntity> previousNode = this.ringStorage.getNode("PREVIOUS");
@@ -31,7 +32,7 @@ class GlobalExceptionHandler {
         }
 
         // Notify server we are leaving system
-        RestMessagesRepository.removeFromNamingServer(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP());
+        RestMessagesRepository.removeFromNamingServer(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP());
 
         // Continue throwing error
         throw e;

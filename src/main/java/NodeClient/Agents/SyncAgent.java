@@ -50,29 +50,29 @@ public class SyncAgent extends Agent {
 
         NodeEntity nextNode = ringStorage.getNode("NEXT").orElse(null);
         NodeEntity previousNode = ringStorage.getNode("PREVIOUS").orElse(null);
-        syncWithNeighbor(nextNode, localFileSet);
-        syncWithNeighbor(previousNode, localFileSet);
+//        syncWithNeighbor(nextNode, localFileSet);
+//        syncWithNeighbor(previousNode, localFileSet);
     }
 
-    private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException {
-        FileListResponse neighborFiles = RestMessagesRepository.getFileListResponse(node);
-        Set<String> replicatedSet = new HashSet<>(neighborFiles.replicatedFiles());
-
-        for (String fileName: localFileSet) {
-            if (!replicatedSet.contains(fileName)) {
-                byte[] data = fileService.readFile(fileName);
-                if (data != null) {
-                    FileMessage message = new FileMessage(fileName, "REPLICATE", data);
-                    RestMessagesRepository.handleFileOperations(message, node.getIpAddress());
-                }
-            }
-        }
-
-        for (String fileName: replicatedSet) {
-            if (!localFileSet.contains(fileName)) {
-                FileMessage msg = new FileMessage(fileName, "DELETE_REPLICA", null);
-                RestMessagesRepository.handleFileOperations(msg, node.getIpAddress());
-            }
-        }
-    }
+//    private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException {
+//        FileListResponse neighborFiles = RestMessagesRepository.getFileListResponse(node);
+//        Set<String> replicatedSet = new HashSet<>(neighborFiles.replicatedFiles());
+//
+//        for (String fileName: localFileSet) {
+//            if (!replicatedSet.contains(fileName)) {
+//                byte[] data = fileService.readFile(fileName);
+//                if (data != null) {
+//                    FileMessage message = new FileMessage(fileName, "REPLICATE", data);
+//                    RestMessagesRepository.handleFileOperations(message, node.getIpAddress());
+//                }
+//            }
+//        }
+//
+//        for (String fileName: replicatedSet) {
+//            if (!localFileSet.contains(fileName)) {
+//                FileMessage msg = new FileMessage(fileName, "DELETE_REPLICA", null);
+//                RestMessagesRepository.handleFileOperations(msg, node.getIpAddress());
+//            }
+//        }
+//    }
 }

@@ -19,7 +19,7 @@ public class NodeMulticastListener {
     private final String IP;
     private Multicast multicast;
     @Value("${multicast.port}")
-    private int PORT;
+    private int multicastPort;
 
     @Value("${multicast.groupIP}")
     private String groupIP;
@@ -29,49 +29,57 @@ public class NodeMulticastListener {
         this.IP = InetAddress.getLocalHost().getHostAddress();
     }
 
+
+    /**
+     * Starting a multicast listener on separate thread
+     */
     @PostConstruct
-    public void start() {
-        try{
-            this.multicast = new Multicast(IP,groupIP,PORT);
-            new Thread(this::listen).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void start() throws IOException {
+        this.multicast = new Multicast(IP,groupIP, multicastPort);
+        new Thread(() -> {
+            try {
+                listen();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
     }
 
-    private void listen() {
+    /**
+     * Nodes listen to other nodes starting up on the network.
+     * Steps:
+     *  1) Join multicast group and listen
+     *  2) When a different node performs startup code, multicast will be received and parsed
+     *  3) Depending on current ring configuration (see further for options) perform config and REST messaging.
+     */
+    private void listen() throws InterruptedException {
+        Thread.sleep(500);
         while (true){
             System.out.print("Node Multicast Listening\n");
-            try (MulticastSocket socket = new MulticastSocket(PORT)) {
+            try (MulticastSocket socket = new MulticastSocket(multicastPort)) {
                 InetAddress group = InetAddress.getByName(groupIP);
 
-                // Enable loopback mode
+                // Enable loop back mode
                 socket.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
 
                 // Specify network interface (optional, set to null for default)
                 // local
                 // NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
-
-                //remote
                 NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
-                if (networkInterface == null) {
-                    System.out.println("Using default network interface");
-                } else {
-                    System.out.println("Using interface: " + networkInterface.getName());
-                }
 
                 // Join the multicast group
-                socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
-                System.out.println("Joined group: " + group.getHostAddress() + ":"+PORT);
+                socket.joinGroup(new InetSocketAddress(group, multicastPort), networkInterface);
+                System.out.println("Joined group: " + group.getHostAddress() + ":"+ multicastPort);
                 byte[] buffer = new byte[1024];
                 while (true) {
-                    DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
+                    DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), multicastPort);
                     socket.receive(packet);
                     String message = new String(packet.getData(), 0, packet.getLength());
                     System.out.println("node received a multicast message of a new node (prev/next): "+message);
                     String nodeName = message.split(",")[0];
                     String nodeIP = message.split(",")[1];
                     Long hashedNodeName = NamingServerHash.hashNode(nodeName, nodeIP);
+
                     // Received the startup broadcast from new node
                     // ReceivedNode is new node
                     NodeEntity receivedNode = new NodeEntity(nodeIP, nodeName);
@@ -100,7 +108,7 @@ public class NodeMulticastListener {
                         this.ringStorage.setNode("PREVIOUS", receivedNode);
                         RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
                     } else if (this.ringStorage.getCurrentNodeCount() == 2) {
-                        // 2 because the current has already has been updated a couple lines earlier
+                        // 2 because the current has already been updated a couple lines earlier
                         System.out.println("Received hash does not fall in [NEXT, PREVIOUS] region, updating to self!");
                         // Setting on local
                         ringStorage.setNode("NEXT", receivedNode);

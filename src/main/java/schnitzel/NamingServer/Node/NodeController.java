@@ -24,23 +24,9 @@ public class NodeController {
         }
     }
 
-    /**
-     *
-     * @param nodeIdentifier: Which is either a number (but as String type) or the nodeName to be hashed
-     * @return Hash either way
-     */
-    long parseIdentifier(String nodeIdentifier) {
-        try {
-            return Integer.parseInt(nodeIdentifier);
-        }  catch (NumberFormatException e) {
-            return NamingServerHash.hash(nodeIdentifier);
-        }
-    }
-
     // Get Unique
-    @GetMapping("/node/{nodeIdentifier}")
-    NodeEntity get(@PathVariable String nodeIdentifier) {
-        Long nodeHash = parseIdentifier(nodeIdentifier);
+    @GetMapping("/node/{nodeHash}")
+    NodeEntity get(@PathVariable Long nodeHash) {
         Optional<NodeEntity> nodeOpt = nodeStorageService.findById(nodeHash);
         if (nodeOpt.isEmpty()) {
             throw new ResourceNotFoundException("Node with hash " + nodeHash + " does not exist");
@@ -48,11 +34,11 @@ public class NodeController {
         return nodeOpt.get();
     }
 
-    @DeleteMapping("/node/{nodeIdentifier}")
-    void delete(@PathVariable String nodeIdentifier) {
-        Long nodeHash = parseIdentifier(nodeIdentifier);
+    @DeleteMapping("/node/{nodeHash}")
+    void delete(@PathVariable Long nodeHash) {
+        System.out.println("Deleting node with hash " + nodeHash);
         if (!nodeStorageService.existsById(nodeHash)) {
-            throw new RuntimeException("Node with hash " + nodeHash + " already exists.");
+            throw new RuntimeException("Node with hash " + nodeHash + " doesn't exist. Cannot delete it.");
         }
         this.nodeStorageService.deleteById(nodeHash);
     }
