@@ -38,11 +38,15 @@ public class OnShutdownBean {
         NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
                 new IllegalStateException("Existing Node does not have previous set")
         );
-
-        handleLocalFiles();
-        transferReplicatedFiles();
-
-        RestMessagesRepository.removingSelfFromSystem(this.ringStorage.currentName(), this.ringStorage.getNamingServerIP(), previousNode, nextNode);
+        System.out.println("Shutting down Node " + this.ringStorage.currentName());
+        RestMessagesRepository.removingSelfFromSystem(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP(), previousNode, nextNode);
+        try {
+            handleLocalFiles();
+            transferReplicatedFiles();
+        }
+        catch (IOException e) {
+            System.out.println("Could not handle local files or transfer replicated files, continuing shutdown process...");
+        }
     }
 
     private void handleLocalFiles() throws IOException {

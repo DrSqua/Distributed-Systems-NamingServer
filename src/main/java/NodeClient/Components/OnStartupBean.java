@@ -38,7 +38,7 @@ public class OnStartupBean {
     public void notifyNetwork() {
         try(MulticastSocket socket = new MulticastSocket(PORT)) {
             // Define the multicast group address and port (can be customized)
-            String clientIP = InetAddress.getLocalHost().getHostAddress();
+            String clientIP = this.ringStorage.getOwnIp();
             Multicast multicast = new Multicast(clientIP,groupIP, port);
 
             multicast.JoinMulticast();

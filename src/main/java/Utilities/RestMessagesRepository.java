@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.net.ConnectException;
 import java.util.List;
@@ -73,13 +74,13 @@ public class RestMessagesRepository {
         return new RestTemplate().getForObject(url, NodeEntity.class);
     }
 
-    public static void removeFromNamingServer(String nodeName, String namingServerIP) {
+    public static void removeFromNamingServer(NodeEntity node, String namingServerIP) {
         RestTemplate restTemplate = new RestTemplate();
         try {
-            String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + nodeName;
+            String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeHash();
+            System.out.println("Removing self (" + node.getNodeName() + ") from naming server at " + url);
             HttpEntity<String> request = new HttpEntity<>(null);
             restTemplate.delete(url, request, Void.class);
-            System.out.println("Removing self (" + nodeName + ") from naming server ");
         } catch (Exception e) {
             // TODO - what if we are already in the exception throwing?
         }
@@ -91,13 +92,14 @@ public class RestMessagesRepository {
         return new RestTemplate().getForObject(url, String.class);
     }
 
-    public static void removingSelfFromSystem(String nodeName, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) {
+    public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) {
         // Tell neighbours they are now each other's neighbour
-        RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
-        RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
+        // fixme, add neighbour messaging (but only if the neighbours are not self)
+//      // RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
+//      // RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
 
         // Notify server we are leaving system
-        RestMessagesRepository.removeFromNamingServer(nodeName, namingServerIP);
+        RestMessagesRepository.removeFromNamingServer(node, namingServerIP);
     }
 
     public static void handleFileOperations(FileMessage message, String targetNodeIp) {

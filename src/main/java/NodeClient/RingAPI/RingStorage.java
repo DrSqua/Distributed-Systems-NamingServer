@@ -24,7 +24,7 @@ public class RingStorage {
     }
 
     public NodeEntity getSelf() throws UnknownHostException {
-        return new NodeEntity(InetAddress.getLocalHost().toString(), this.currentName());
+        return new NodeEntity(this.getOwnIp(), this.currentName());
     }
 
     public void setCurrentNodeCount(int nodeCount) {
@@ -39,9 +39,15 @@ public class RingStorage {
         return System.getProperty("user.name");
     }
 
+    public String getOwnIp() throws UnknownHostException {
+        String ownIp = InetAddress.getLocalHost().getHostAddress();
+        System.out.println("Own IP: " + ownIp);
+        return ownIp;
+    }
+
     public Long currentHash() throws UnknownHostException {
         return NamingServerHash.hashNode(this.currentName(),
-                InetAddress.getLocalHost().toString()); // :)
+                this.getOwnIp()); // :)
     }
 
     public String getNamingServerIP() {

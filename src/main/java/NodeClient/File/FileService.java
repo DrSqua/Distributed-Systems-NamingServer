@@ -158,13 +158,13 @@ public class FileService {
 
     private void replicateToOneNeighbor(String fileName, String operation, byte[] data) {
         FileMessage message = new FileMessage(fileName, operation, data);
-            // Getting next node and its IP
-            NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
-                    new IllegalStateException("Existing Node does not have next set")
-            );
-            String nextIpAddress = nextNode.getIpAddress();
-            // Send a Post request to next node for file replication
-            RestMessagesRepository.handleFileOperations(message, nextIpAddress);
+        // Getting next node and its IP
+        NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
+                new IllegalStateException("Existing Node does not have next set")
+        );
+        String nextIpAddress = nextNode.getIpAddress();
+        // Send a Post request to next node for file replication
+        RestMessagesRepository.handleFileOperations(message, nextIpAddress);
     }
 
     /**

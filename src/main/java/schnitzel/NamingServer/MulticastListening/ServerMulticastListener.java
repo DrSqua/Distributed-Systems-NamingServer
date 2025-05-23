@@ -74,6 +74,7 @@ public class ServerMulticastListener {
                 System.out.println(message);
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
+                System.out.println("Received a multicast message from a new node with ip: " + nodeIP);
                 String responsePORT = message.split(",")[2];
                 Long hash = NamingServerHash.hashNode(nodeName, nodeIP);
                 NodeEntity node = new NodeEntity(nodeIP, nodeName);

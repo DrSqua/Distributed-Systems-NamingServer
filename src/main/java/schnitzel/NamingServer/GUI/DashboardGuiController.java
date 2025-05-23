@@ -1,11 +1,10 @@
-package schnitzel.NamingServer.GUI;
+package schnitzel.NamingServer.GUI; // Or schnitzel.NamingServer.Gui.Controller
 
-import schnitzel.NamingServer.GUI.DTO.FileInfoDisplay; // Assuming this DTO exists
-import schnitzel.NamingServer.GUI.DTO.NodeConfigDisplay; // Assuming this DTO exists
-import schnitzel.NamingServer.GUI.DTO.NodeInfoDisplay;   // Assuming this DTO exists
-import schnitzel.NamingServer.GUI.DTO.NodeClientFileListResponse; // Assuming this DTO exists for WebClient response
+import schnitzel.NamingServer.GUI.DTO.NodeClientFileListResponse;
+import schnitzel.NamingServer.GUI.DTO.NodeConfigDisplay;
+import schnitzel.NamingServer.GUI.DTO.NodeInfoDisplay;
 import schnitzel.NamingServer.Node.NodeStorageService;
-import Utilities.NodeEntity.NodeEntity; // Your actual NodeEntity
+import Utilities.NodeEntity.NodeEntity;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,21 +33,15 @@ public class DashboardGuiController {
 
     private final NodeStorageService nodeStorageService;
     private final WebClient.Builder webClientBuilder;
-    // NamingServer's NodeController is no longer needed if NodeStorageService is used directly for removal
-    // private final schnitzel.NamingServer.Node.NodeController nsNodeController;
     private final int NODE_CLIENT_PORT = 8081;
 
     @Autowired
     public DashboardGuiController(NodeStorageService nodeStorageService,
-                                  WebClient.Builder webClientBuilder
-            /*, schnitzel.NamingServer.Node.NodeController nsNodeController */) {
+                                  WebClient.Builder webClientBuilder) {
         this.nodeStorageService = nodeStorageService;
         this.webClientBuilder = webClientBuilder;
-        // this.nsNodeController = nsNodeController;
     }
 
-    // Helper to convert NodeEntity to NodeInfoDisplay DTO for the GUI
-    // Assumes NodeInfoDisplay constructor takes NodeEntity and handles setting fixed port
     private NodeInfoDisplay convertToDisplay(NodeEntity entity) {
         if (entity == null) return null;
         return new NodeInfoDisplay(entity);
@@ -58,18 +51,14 @@ public class DashboardGuiController {
     public String dashboard(Model model,
                             @RequestParam(name = "node_ip", required = false) String selectedNodeIp,
                             @RequestParam(name = "node_hash", required = false) Long selectedNodeHashParam,
-                            // Removed 'action' param, health check has its own GET mapping now
-                            // @RequestParam(name = "action", required = false) String action,
-                            @RequestParam(name = "status_message", required = false) String statusMessage,
-                            @RequestParam(name = "error_message", required = false) String errorMessage) {
+                            @RequestParam(name = "statusMessage", required = false) String statusMessage,
+                            @RequestParam(name = "errorMessage", required = false) String errorMessage) {
 
-        log.info("Dashboard Request: node_ip=[{}], node_hash=[{}]", selectedNodeIp, selectedNodeHashParam);
+        log.debug("Dashboard Request: node_ip=[{}], node_hash=[{}]", selectedNodeIp, selectedNodeHashParam);
 
-        // Pass redirect messages to the model
         if (statusMessage != null) model.addAttribute("statusMessage", statusMessage);
         if (errorMessage != null) model.addAttribute("errorMessage", errorMessage);
 
-        // 1. Fetch all nodes
         List<NodeInfoDisplay> allNodesForGui = Collections.emptyList();
         String systemErrorMessage = null;
         try {
@@ -84,119 +73,64 @@ public class DashboardGuiController {
             systemErrorMessage = "Error loading node list from Naming Server.";
         }
         model.addAttribute("allNodes", allNodesForGui);
-        if (systemErrorMessage != null) {
-            model.addAttribute("systemError", systemErrorMessage);
-        }
+        if (systemErrorMessage != null) model.addAttribute("systemError", systemErrorMessage);
 
-        // Initialize model attributes for the details section
+        model.addAttribute("selectedNodeIp", selectedNodeIp);
+        model.addAttribute("selectedNodeHashParam", selectedNodeHashParam);
         model.addAttribute("selectedNodeIdentifier", null);
         model.addAttribute("selectedNodeConfig", null);
         model.addAttribute("selectedNodeLocalFiles", Collections.emptyList());
         model.addAttribute("selectedNodeReplicatedFiles", Collections.emptyList());
         model.addAttribute("selectedNodeConfigError", null);
         model.addAttribute("selectedNodeFilesError", null);
-        if (selectedNodeIp != null && !model.containsAttribute("healthStatus_" + selectedNodeIp.replace(".", "_"))) {
-            model.addAttribute("healthStatus_" + selectedNodeIp.replace(".", "_"), null); // For health status display
+        String healthStatusKeyBase = (selectedNodeIp != null) ? "healthStatus_" + selectedNodeIp.replace(".", "_") : null;
+        if (healthStatusKeyBase != null && !model.containsAttribute(healthStatusKeyBase)) {
+            model.addAttribute(healthStatusKeyBase, null);
         }
 
-
         if (selectedNodeIp != null) {
-            model.addAttribute("selectedNodeIp", selectedNodeIp);
-            model.addAttribute("selectedNodeHashParam", selectedNodeHashParam);
-
+            model.addAttribute("selectedNodeIdentifier", selectedNodeIp + ":" + NODE_CLIENT_PORT);
             String nodeBaseUrl = "http://" + selectedNodeIp + ":" + NODE_CLIENT_PORT;
             WebClient targetNodeClient = webClientBuilder.baseUrl(nodeBaseUrl).build();
-            model.addAttribute("selectedNodeIdentifier", selectedNodeIp + ":" + NODE_CLIENT_PORT);
-
             NodeConfigDisplay nodeConfigDisplay = new NodeConfigDisplay();
-            String currentConfigError = null; // Local var for config errors
+            StringBuilder currentConfigErrorAccumulator = new StringBuilder();
 
-            // --- Get Current Node Info directly from Naming Server's storage ---
             NodeEntity currentSelectedEntity = null;
             if (selectedNodeHashParam != null) {
                 currentSelectedEntity = nodeStorageService.findById(selectedNodeHashParam).orElse(null);
                 if (currentSelectedEntity == null) {
                     log.warn("Node with hash {} NOT FOUND in NodeStorageService via HASH.", selectedNodeHashParam);
-                    currentConfigError = "Selected node (hash: " + selectedNodeHashParam + ") details not found in Naming Server.";
+                    currentConfigErrorAccumulator.append("Selected node (hash: ").append(selectedNodeHashParam).append(") details not found in Naming Server. ");
                 }
             } else {
-                log.warn("Selected node_hash parameter was null. Cannot reliably find node by IP {} without iterating.", selectedNodeIp);
-                currentConfigError = "Node hash not provided for selection.";
-                // Optionally, implement IP fallback if truly needed, but hash is better.
+                log.warn("Selected node_hash parameter was null for IP {}. Cannot reliably find node.", selectedNodeIp);
+                currentConfigErrorAccumulator.append("Node hash not provided for selection. ");
             }
-            if (currentSelectedEntity != null) {
-                nodeConfigDisplay.setCurrentNode(convertToDisplay(currentSelectedEntity));
-            }
-            if (currentConfigError != null) {
-                model.addAttribute("selectedNodeConfigError", currentConfigError);
-            }
+            if (currentSelectedEntity != null) nodeConfigDisplay.setCurrentNode(convertToDisplay(currentSelectedEntity));
 
-            // --- Fetch Previous Node ---
             try {
-                NodeEntity prevEntity = targetNodeClient.get()
-                        .uri("/ring/PREVIOUS")
-                        .retrieve().bodyToMono(NodeEntity.class)
-                        .onErrorResume(WebClientResponseException.NotFound.class, e -> Mono.empty())
-                        .onErrorResume(WebClientRequestException.class, e -> { log.warn("Conn err PREVIOUS {}: {}", nodeBaseUrl, e.getMessage()); return Mono.empty(); })
-                        .onErrorResume(WebClientResponseException.class, e -> { log.warn("HTTP err PREVIOUS {}: {}", nodeBaseUrl, e.getStatusCode()); return Mono.empty(); })
-                        .block();
+                NodeEntity prevEntity = targetNodeClient.get().uri("/ring/PREVIOUS").retrieve().bodyToMono(NodeEntity.class)
+                        .onErrorResume(e -> {log.debug("Error/Empty PREVIOUS for {}: {}",nodeBaseUrl,e.getMessage());return Mono.empty();}).block();
                 nodeConfigDisplay.setPreviousNode(convertToDisplay(prevEntity));
-            } catch (Exception e) { log.warn("Sync exc PREVIOUS {}: {}", nodeBaseUrl, e.getMessage());}
-
-            // --- Fetch Next Node ---
+            } catch (Exception e) { log.warn("Sync exc PREVIOUS {}: {}", nodeBaseUrl, e.getMessage()); currentConfigErrorAccumulator.append("Error fetching previous. "); }
             try {
-                NodeEntity nextEntity = targetNodeClient.get()
-                        .uri("/ring/NEXT")
-                        .retrieve().bodyToMono(NodeEntity.class)
-                        .onErrorResume(WebClientResponseException.NotFound.class, e -> Mono.empty())
-                        .onErrorResume(WebClientRequestException.class, e -> { log.warn("Conn err NEXT {}: {}", nodeBaseUrl, e.getMessage()); return Mono.empty(); })
-                        .onErrorResume(WebClientResponseException.class, e -> { log.warn("HTTP err NEXT {}: {}", nodeBaseUrl, e.getStatusCode()); return Mono.empty(); })
-                        .block();
+                NodeEntity nextEntity = targetNodeClient.get().uri("/ring/NEXT").retrieve().bodyToMono(NodeEntity.class)
+                        .onErrorResume(e -> {log.debug("Error/Empty NEXT for {}: {}",nodeBaseUrl,e.getMessage());return Mono.empty();}).block();
                 nodeConfigDisplay.setNextNode(convertToDisplay(nextEntity));
-            } catch (Exception e) { log.warn("Sync exc NEXT {}: {}", nodeBaseUrl, e.getMessage());}
+            } catch (Exception e) { log.warn("Sync exc NEXT {}: {}", nodeBaseUrl, e.getMessage()); currentConfigErrorAccumulator.append("Error fetching next. "); }
+
+            if (!currentConfigErrorAccumulator.isEmpty()) model.addAttribute("selectedNodeConfigError", currentConfigErrorAccumulator.toString().trim());
             model.addAttribute("selectedNodeConfig", nodeConfigDisplay);
 
-
-            // --- Fetch Node Files ---
             try {
-                NodeClientFileListResponse clientFileResponse = targetNodeClient.get()
-                        .uri("/node/file/list") // Your NodeClient endpoint
-                        .retrieve().bodyToMono(NodeClientFileListResponse.class)
-                        .onErrorResume(WebClientResponseException.NotFound.class, e_resp_nf -> {
-                            log.warn("/node/file/list not found (404) on {}. Assuming no files.", nodeBaseUrl);
-                            return Mono.just(createEmptyFileListResponse());
-                        })
-                        .onErrorResume(WebClientRequestException.class, e_req -> {
-                            log.error("Connection error fetching files from {}: {}", nodeBaseUrl, e_req.getMessage());
-                            model.addAttribute("selectedNodeFilesError", "Node unreachable for file list.");
-                            return Mono.just(createEmptyFileListResponse());
-                        })
-                        .onErrorResume(WebClientResponseException.class, e_resp -> {
-                            log.warn("HTTP error fetching files for {}: status={}", nodeBaseUrl, e_resp.getStatusCode());
-                            model.addAttribute("selectedNodeFilesError", "Error from Node API fetching files: " + e_resp.getStatusCode());
-                            return Mono.just(createEmptyFileListResponse());
-                        })
-                        .block();
-
-                if (clientFileResponse != null) {
-                    model.addAttribute("selectedNodeLocalFiles",
-                            clientFileResponse.getLocalFiles() != null ? clientFileResponse.getLocalFiles() : Collections.emptyList());
-                    model.addAttribute("selectedNodeReplicatedFiles",
-                            clientFileResponse.getReplicatedFiles() != null ? clientFileResponse.getReplicatedFiles() : Collections.emptyList());
-                }
-            } catch (Exception e) {
-                log.error("Synchronous exception during files fetch for {}: {}", nodeBaseUrl, e.getMessage(), e);
-                model.addAttribute("selectedNodeFilesError", "Error fetching files (Node API error or unavailable).");
-            }
+                NodeClientFileListResponse clientFileResponse = targetNodeClient.get().uri("/node/file/list").retrieve()
+                        .bodyToMono(NodeClientFileListResponse.class)
+                        .onErrorResume(e -> {log.warn("Error files list for {}: {}",nodeBaseUrl,e.getMessage()); return Mono.just(new NodeClientFileListResponse());}).block(); // Ensure empty response on error
+                model.addAttribute("selectedNodeLocalFiles", clientFileResponse.getLocalFiles());
+                model.addAttribute("selectedNodeReplicatedFiles", clientFileResponse.getReplicatedFiles());
+            } catch (Exception e) { log.error("Sync ex files list {}: {}", nodeBaseUrl, e.getMessage(), e); model.addAttribute("selectedNodeFilesError", "Error fetching files list from node.");}
         }
         return "gui_dashboard";
-    }
-
-    private NodeClientFileListResponse createEmptyFileListResponse() {
-        NodeClientFileListResponse emptyResp = new NodeClientFileListResponse();
-        emptyResp.setLocalFiles(Collections.emptyList());
-        emptyResp.setReplicatedFiles(Collections.emptyList());
-        return emptyResp;
     }
 
     @GetMapping("/gui/node/check-health")
@@ -206,48 +140,60 @@ public class DashboardGuiController {
         String nodeBaseUrl = "http://" + nodeIp + ":" + NODE_CLIENT_PORT;
         WebClient targetNodeClient = webClientBuilder.baseUrl(nodeBaseUrl).build();
         String healthStatus;
+        String healthStatusKey = "healthStatus_" + nodeIp.replace(".", "_");
 
-        log.info("Attempting health check for node: {} ({})", nodeIp, nodeHash);
+        log.info("Attempting health check for node: {} (Hash: {})", nodeIp, nodeHash);
         try {
-            String healthResponse = targetNodeClient.get() // GET request
-                    .uri("/health") // NodeClient's GET /health endpoint
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorResume(WebClientResponseException.class, ex ->
-                            Mono.just("ERROR: " + ex.getStatusCode() + " - " + ex.getResponseBodyAsString())
-                    )
-                    .onErrorResume(WebClientRequestException.class, ex ->
-                            Mono.just("ERROR: Node Unreachable - " + ex.getMessage())
-                    )
-                    .block();
-            healthStatus = "Health (" + nodeIp + "): " + healthResponse;
-        } catch (Exception e) {
-            log.error("Exception during health check for {}: {}", nodeIp, e.getMessage(), e);
-            healthStatus = "Health (" + nodeIp + "): FAILED (Exception: " + e.getMessage() + ")";
-        }
-        redirectAttributes.addFlashAttribute("healthStatus_" + nodeIp.replace(".", "_"), healthStatus);
+            String healthResponse = targetNodeClient.get().uri("/health").retrieve().bodyToMono(String.class)
+                    .onErrorResume(e -> Mono.just("ERROR: " + e.getMessage().split("\n")[0])).block();
+            healthStatus = healthResponse;
+        } catch (Exception e) { healthStatus = "FAILED (Exception: " + e.getMessage().split("\n")[0] + ")"; }
+        redirectAttributes.addFlashAttribute(healthStatusKey, healthStatus);
         return "redirect:/gui/dashboard?node_ip=" + nodeIp + "&node_hash=" + nodeHash;
     }
 
+    // MODIFIED: This method now triggers NodeClient shutdown instead of direct NamingServer deletion
     @PostMapping("/gui/node/remove")
-    public String removeNode(@RequestParam("nodeHash") Long nodeHash,
-                             RedirectAttributes redirectAttributes) {
-        log.info("Attempting to remove node with hash: {}", nodeHash);
-        try {
-            if (nodeStorageService.existsById(nodeHash)) {
-                NodeEntity removedNode = nodeStorageService.findById(nodeHash).orElse(null);
-                nodeStorageService.deleteById(nodeHash); // Direct call to NamingServer's service
-                String nodeName = (removedNode != null) ? removedNode.getNodeName() : String.valueOf(nodeHash);
-                log.info("Node {} (Hash: {}) removed successfully.", nodeName, nodeHash);
-                redirectAttributes.addFlashAttribute("statusMessage", "Node " + nodeName + " (Hash: " + nodeHash + ") removed successfully.");
-            } else {
-                log.warn("Attempted to remove non-existent node with hash: {}", nodeHash);
-                redirectAttributes.addFlashAttribute("errorMessage", "Node with hash " + nodeHash + " not found for removal.");
-            }
-        } catch (Exception e) {
-            log.error("Error removing node with hash {}: {}", nodeHash, e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Error removing node: " + e.getMessage());
+    public String triggerNodeClientShutdown(@RequestParam("node_ip") String nodeIpToShutdown, // Renamed for clarity
+                                            @RequestParam("node_hash") Long nodeHashForMessage, // For user messages
+                                            RedirectAttributes redirectAttributes) {
+
+        String nodeNameForMessage = "Node (Hash: " + nodeHashForMessage + ")";
+        Optional<NodeEntity> nodeOpt = nodeStorageService.findById(nodeHashForMessage);
+        if (nodeOpt.isPresent() && nodeOpt.get().getNodeName() != null && !nodeOpt.get().getNodeName().isEmpty()) {
+            nodeNameForMessage = nodeOpt.get().getNodeName();
         }
-        return "redirect:/gui/dashboard"; // Go back to main dashboard, node will be gone from list
+
+        String nodeClientShutdownUrl = "http://" + nodeIpToShutdown + ":" + NODE_CLIENT_PORT + "/shutdown-trigger";
+        log.info("Sending shutdown signal to node: {} (IP: {}) at URL: {}", nodeNameForMessage, nodeIpToShutdown, nodeClientShutdownUrl);
+
+        try {
+            WebClient client = webClientBuilder.baseUrl("http://" + nodeIpToShutdown + ":" + NODE_CLIENT_PORT).build();
+            String response = client.post()
+                    .uri("/shutdown-trigger") // Call NodeClient's shutdown endpoint
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("Node {} (IP: {}) responded to shutdown signal: {}", nodeNameForMessage, nodeIpToShutdown, response);
+            redirectAttributes.addFlashAttribute("statusMessage",
+                    "Shutdown signal sent to node " + nodeNameForMessage + ". It will de-register itself from the Naming Server if its shutdown process is successful.");
+
+        } catch (WebClientRequestException e) {
+            log.error("Failed to send shutdown signal to node {} at {}: {}", nodeNameForMessage, nodeIpToShutdown, e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Could not connect to node " + nodeNameForMessage + " ("+ nodeIpToShutdown + ") to trigger shutdown. Is it running or reachable?");
+        } catch (WebClientResponseException e) {
+            log.error("Node {} (IP: {}) responded with error to shutdown signal: {} - {}", nodeNameForMessage, nodeIpToShutdown, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Node " + nodeNameForMessage + " ("+nodeIpToShutdown+") responded with error (" + e.getStatusCode() + ") to shutdown signal. Check NodeClient logs.");
+        } catch (Exception e) {
+            log.error("Unexpected error sending shutdown signal to node {} (IP: {}): {}", nodeNameForMessage, nodeIpToShutdown, e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "An error occurred sending shutdown signal to node " + nodeNameForMessage + ".");
+        }
+        // Redirect back to the main dashboard. The node will disappear from the list
+        // once its @PreDestroy (OnShutdownBean) calls the NamingServer's delete endpoint.
+        return "redirect:/gui/dashboard";
     }
 }
