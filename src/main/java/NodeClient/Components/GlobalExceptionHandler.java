@@ -37,7 +37,7 @@ class GlobalExceptionHandler {
 
         // Notify server we are leaving system
         RestMessagesRepository.removeFromNamingServerNoExcept(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP());
-
+        e.printStackTrace();
         System.err.println("GlobalExceptionHandler: Initiating IMMEDIATE FORCEFUL SHUTDOWN of the NodeClient (System.exit(1)).");
         new Thread(() -> {
             try {

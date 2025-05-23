@@ -41,13 +41,14 @@ public class NodeEntity {
     @Override
     public String toString() {
         return "NodeEntity{" +
-                "nodeHash=" + nodeHash +
+                "nodeName='" + nodeName +
+                ", nodeHash=" + nodeHash +
                 ", ipAddress='" + ipAddress + '\'' +
                 '}';
     }
 
     public NodeEntityIn asEntityIn() {
-        return new NodeEntityIn(ipAddress);
+        return new NodeEntityIn(nodeName);
     }
 
     public String getNodeName() {
