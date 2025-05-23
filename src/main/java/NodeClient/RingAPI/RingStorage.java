@@ -46,7 +46,7 @@ public class RingStorage {
         NodeEntity previousNode = this.getNode("PREVIOUS").orElseThrow(() ->
                 new IllegalStateException("Existing Node does not have previous set")
         );
-        return nextNode.getNodeHash() > currentHash() && previousNode.getNodeHash() > currentHash();
+        return nextNode.getNodeHash() < currentHash() && previousNode.getNodeHash() < currentHash();
     }
 
     public String getOwnIp() throws UnknownHostException {

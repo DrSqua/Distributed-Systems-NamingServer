@@ -30,19 +30,15 @@ public class NodeMulticastListener {
     }
 
     @PostConstruct
-    public void start(){
-        try{
-            this.multicast = new Multicast(IP,groupIP,PORT);
-            new Thread(() -> {
-                try {
-                    listen();
-                }catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void start() throws IOException {
+        this.multicast = new Multicast(IP,groupIP,PORT);
+        new Thread(() -> {
+            try {
+                listen();
+            }catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
     }
 
     private void listen() throws IOException {
@@ -148,10 +144,8 @@ public class NodeMulticastListener {
 
                     // Adjust own next
                     this.ringStorage.setNode("NEXT", receivedNode);
-                } else {
-                    throw new IllegalStateException("Unexpected state");
                 }
-
+                // Else do nothing
             }
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
