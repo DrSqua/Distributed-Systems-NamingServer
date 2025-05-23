@@ -77,7 +77,28 @@
 
         .flash-message { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
         .flash-message.status { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+        .shutdown-server-btn {
+            background-color: #7f0000; /* Darker, more ominous red */
+            color: white;
+            padding: 10px 15px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block; /* Make it a block to take its own line */
+            width: fit-content; /* Adjust width to content */
+            margin: 20px auto; /* Center it a bit or place it where you want */
+        }
+        .shutdown-server-btn:hover {
+            background-color: #600000;
+        }
+        .sidebar .admin-actions { /* Container for admin buttons at the bottom of sidebar */
+            margin-top: auto; /* Pushes it to the bottom if sidebar is flex-column */
+            padding-top: 20px;
+            border-top: 1px solid #34495e;
+        }
     </style>
+    <meta http-equiv="refresh" content="5" >
 </head>
 <body>
 <div class="sidebar">
@@ -101,6 +122,14 @@
         </li>
     </ul>
     <p th:if="${(allNodes == null or allNodes.isEmpty()) and #strings.isEmpty(systemError)}" class="empty-state" style="color: #bdc3c7;">No nodes registered.</p>
+    <div class="admin-actions">
+        <form th:action="@{/gui/namingserver/shutdown}" method="post" style="text-align: center;">
+            <button type="submit" class="shutdown-server-btn"
+                    onclick="return confirm('VERY DANGEROUS ACTION!\n\nAre you absolutely sure you want to SHUT DOWN THE ENTIRE NAMING SERVER?\nThis will make the distributed system inoperable until it is restarted.');">
+                Shutdown Naming Server
+            </button>
+        </form>
+    </div>
 </div>
 
 <div class="content">

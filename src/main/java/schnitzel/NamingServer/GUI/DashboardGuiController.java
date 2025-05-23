@@ -1,5 +1,7 @@
 package schnitzel.NamingServer.GUI; // Or schnitzel.NamingServer.Gui.Controller
 
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import schnitzel.NamingServer.GUI.DTO.NodeClientFileListResponse;
 import schnitzel.NamingServer.GUI.DTO.NodeConfigDisplay;
 import schnitzel.NamingServer.GUI.DTO.NodeInfoDisplay;
@@ -34,12 +36,15 @@ public class DashboardGuiController {
     private final NodeStorageService nodeStorageService;
     private final WebClient.Builder webClientBuilder;
     private final int NODE_CLIENT_PORT = 8081;
+    private final ApplicationContext appContext;
 
     @Autowired
     public DashboardGuiController(NodeStorageService nodeStorageService,
-                                  WebClient.Builder webClientBuilder) {
+                                  WebClient.Builder webClientBuilder,
+                                  ApplicationContext appContext) { // Add ApplicationContext
         this.nodeStorageService = nodeStorageService;
         this.webClientBuilder = webClientBuilder;
+        this.appContext = appContext; // Store it
     }
 
     private NodeInfoDisplay convertToDisplay(NodeEntity entity) {
@@ -194,6 +199,40 @@ public class DashboardGuiController {
         }
         // Redirect back to the main dashboard. The node will disappear from the list
         // once its @PreDestroy (OnShutdownBean) calls the NamingServer's delete endpoint.
+        return "redirect:/gui/dashboard";
+    }
+    @PostMapping("/gui/namingserver/shutdown")
+    public String shutdownNamingServer(RedirectAttributes redirectAttributes) {
+        log.warn("Received request to SHUTDOWN THE NAMING SERVER.");
+        // You can't really redirect after this if it's successful,
+        // as the server will be shutting down.
+        // The response might not even reach the client fully.
+        // The main purpose is to trigger the shutdown.
+
+        // Optionally, add a small delay if you want to try and send a message back,
+        // but it's not guaranteed.
+        new Thread(() -> {
+            try {
+                Thread.sleep(500); // Give a moment for a potential response partial send
+                log.info("Initiating Naming Server shutdown via SpringApplication.exit()...");
+                int exitCode = SpringApplication.exit(appContext, () -> 0);
+                log.info("Naming Server SpringApplication.exit() completed with code {}. Exiting JVM.", exitCode);
+                System.exit(exitCode); // Ensure JVM process terminates
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Naming Server shutdown thread interrupted.", e);
+            } catch (Exception e) {
+                log.error("Exception during Naming Server shutdown: {}", e.getMessage(), e);
+                // If shutdown fails, the server might still be running.
+            }
+        }).start();
+
+        // This message is unlikely to be seen if shutdown is quick.
+        // Consider displaying a "Shutting down..." message on the page via JavaScript before submitting the form.
+        redirectAttributes.addFlashAttribute("statusMessage", "Naming Server shutdown initiated. The server will now close.");
+        // If you redirect to the dashboard, it will likely fail to load as the server is stopping.
+        // A static "Shutting down..." page or just letting the connection drop might be more realistic.
+        // For now, let's redirect and see what happens.
         return "redirect:/gui/dashboard";
     }
 }
