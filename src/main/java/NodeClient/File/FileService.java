@@ -9,12 +9,12 @@ import org.springframework.stereotype.Service;
 import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -120,26 +120,34 @@ public class FileService {
     }
 
     public void replicateToNeighbors(String fileName, String operation, byte[] data) {
-        // if there is only 1 neighbor
-        if (ringStorage.getCurrentNodeCount() == 2) {
+        // Getting next node
+        NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElse(null);
+        // Getting previous node
+        NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElse(null);
+        // Getting current node
+        NodeEntity currentNode;
+        try {
+            currentNode = this.ringStorage.getSelf();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            return;
+        }
+        if (nextNode == null || previousNode == null) {
+            System.out.println("No next or previous node found");
+            return;
+        }
+        String nextIpAddress = nextNode.getIpAddress();
+        String previousIpAddress = previousNode.getIpAddress();
+        // if 1 neighbor
+        if (nextNode.equals(previousNode)) {
             replicateToOneNeighbor(fileName, operation, data);
         }
-        // if there is more than 1 neighbor
-        else if (ringStorage.getCurrentNodeCount() >= 3) {
+        // if more then 1 neighbor (so Prev and next are not himself)
+        else if (!(currentNode.equals(nextNode) && currentNode.equals(previousNode))){
             FileMessage message = new FileMessage(fileName, operation, data);
             try {
-                // Getting next node and its IP
-                NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
-                        new IllegalStateException("Existing Node does not have next set")
-                );
-                String nextIpAddress = nextNode.getIpAddress();
                 // Send a Post request to next node for file replication
                 RestMessagesRepository.handleFileOperations(message, nextIpAddress);
-                // Getting previous node and its IP
-                NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
-                        new IllegalStateException("Existing Node does not have previous set")
-                );
-                String previousIpAddress = previousNode.getIpAddress();
                 // Send a Post request to previous node for file replication
                 RestMessagesRepository.handleFileOperations(message, previousIpAddress);
             } catch (Exception e) {
