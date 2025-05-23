@@ -36,7 +36,7 @@ public class RestMessagesRepository {
 
     public static void removeFromNamingServer(NodeEntity node, String namingServerIP) {
         RestTemplate restTemplate = new RestTemplate();
-        String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeName();
+        String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeHash();
         HttpEntity<String> request = new HttpEntity<>(null);
         restTemplate.delete(url, request, Void.class);
         System.out.println("Removing self (" + node.getNodeName() + ") from naming server ");
