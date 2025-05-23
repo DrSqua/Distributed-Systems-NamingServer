@@ -25,14 +25,18 @@ class GlobalExceptionHandler {
         Optional<NodeEntity> nextNode = this.ringStorage.getNode("NEXT");
         Optional<NodeEntity> previousNode = this.ringStorage.getNode("PREVIOUS");
 
-        if (nextNode.isPresent() && previousNode.isPresent()) {
-            // Tell neighbours they are now each other's neighbour
-            RestMessagesRepository.updateNeighbour(nextNode.get(), "PREVIOUS", previousNode.get().asEntityIn());
-            RestMessagesRepository.updateNeighbour(previousNode.get(), "NEXT", nextNode.get().asEntityIn());
+        try {
+            if (nextNode.isPresent() && previousNode.isPresent()) {
+                // Tell neighbours they are now each other's neighbour
+                RestMessagesRepository.updateNeighbour(nextNode.get(), "PREVIOUS", previousNode.get().asEntityIn());
+                RestMessagesRepository.updateNeighbour(previousNode.get(), "NEXT", nextNode.get().asEntityIn());
+            }
+        } catch (Exception ex) {
+            System.err.println("Notifying neighbours when in GlobalException failed: " + ex.getMessage());
         }
 
         // Notify server we are leaving system
-        RestMessagesRepository.removeFromNamingServer(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP());
+        RestMessagesRepository.removeFromNamingServerNoExcept(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP());
 
         // Continue throwing error
         throw e;

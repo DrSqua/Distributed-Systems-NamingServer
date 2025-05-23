@@ -36,13 +36,17 @@ public class RestMessagesRepository {
 
     public static void removeFromNamingServer(NodeEntity node, String namingServerIP) {
         RestTemplate restTemplate = new RestTemplate();
+        String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeName();
+        HttpEntity<String> request = new HttpEntity<>(null);
+        restTemplate.delete(url, request, Void.class);
+        System.out.println("Removing self (" + node.getNodeName() + ") from naming server ");
+    }
+
+    public static void removeFromNamingServerNoExcept(NodeEntity node, String namingServerIP) {
         try {
-            String url = "http://" + namingServerIP + ":"+ namingServerPort +"/node/" + node.getNodeName();
-            HttpEntity<String> request = new HttpEntity<>(null);
-            restTemplate.delete(url, request, Void.class);
-            System.out.println("Removing self (" + node.getNodeName() + ") from naming server ");
+            RestMessagesRepository.removeFromNamingServer(node, namingServerIP);
         } catch (Exception e) {
-            // TODO - what if we are already in the exception throwing?
+            System.err.println("RemoveFromNamingServer NoExcept failed: " + e.getMessage());
         }
     }
 
