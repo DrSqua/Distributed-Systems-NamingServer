@@ -10,17 +10,24 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.ConnectException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 public class RestMessagesRepository {
     private static final int nodeClientPort = 8081;
     private static final int namingServerPort = 8080;
 
-    public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) throws InterruptedException {
+    public static void updateNeighbour(NodeEntity neighbour,
+                                       String direction,
+                                       NodeEntity data) throws InterruptedException, UnknownHostException {
         Thread.sleep(1000);
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
-        HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
+
+        System.out.println(InetAddress.getLocalHost().getHostAddress() + " sending " + data + " " + url);
+
+        HttpEntity<NodeEntity> request = new HttpEntity<>(data);
         restTemplate.postForEntity(url, request, Void.class);
     }
 
@@ -56,12 +63,12 @@ public class RestMessagesRepository {
         return new RestTemplate().getForObject(url, String.class);
     }
 
-    public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) throws InterruptedException {
+    public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) throws InterruptedException, UnknownHostException {
         // Tell neighbours they are now each other's neighbour
         // Only if neighbour is not self
         if (!node.equals(previousNeighbour) && !node.equals(nextNeighbour)) {
-            RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour.asEntityIn());
-            RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour.asEntityIn());
+            RestMessagesRepository.updateNeighbour(nextNeighbour, "PREVIOUS", previousNeighbour);
+            RestMessagesRepository.updateNeighbour(previousNeighbour, "NEXT", nextNeighbour);
         }
 
         // Notify server we are leaving system

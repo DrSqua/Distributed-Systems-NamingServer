@@ -6,6 +6,7 @@ import Utilities.RestMessagesRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.util.Optional;
 
@@ -21,6 +22,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) throws Exception {
         System.out.println("Global exception caught: " + e.getMessage());
+
+        if (HttpStatusCodeException.class.isAssignableFrom(e.getClass())) {
+            return ResponseEntity.status(((HttpStatusCodeException) e).getStatusCode()).body(e.getMessage());
+        }
+
         // Check if the node has any neighbours
         Optional<NodeEntity> nextNode = this.ringStorage.getNode("NEXT");
         Optional<NodeEntity> previousNode = this.ringStorage.getNode("PREVIOUS");
@@ -28,8 +34,8 @@ class GlobalExceptionHandler {
         try {
             if (nextNode.isPresent() && previousNode.isPresent()) {
                 // Tell neighbours they are now each other's neighbour
-                RestMessagesRepository.updateNeighbour(nextNode.get(), "PREVIOUS", previousNode.get().asEntityIn());
-                RestMessagesRepository.updateNeighbour(previousNode.get(), "NEXT", nextNode.get().asEntityIn());
+                RestMessagesRepository.updateNeighbour(nextNode.get(), "PREVIOUS", previousNode.get());
+                RestMessagesRepository.updateNeighbour(previousNode.get(), "NEXT", nextNode.get());
             }
         } catch (Exception ex) {
             System.err.println("Notifying neighbours when in GlobalException failed: " + ex.getMessage());

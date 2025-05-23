@@ -3,7 +3,6 @@ package NodeClient.MulticastListening;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
 import Utilities.NodeEntity.NodeEntity;
-import Utilities.NodeEntity.NodeEntityIn;
 import Utilities.RestMessagesRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,8 +69,9 @@ public class NodeMulticastListener {
             socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
             System.out.println("Joined group: " + group.getHostAddress() + ":" + PORT);
 
-            byte[] buffer = new byte[1024];
+
             while (true) {
+                byte[] buffer = new byte[1024];
                 DatagramPacket packet = new DatagramPacket(buffer, 0, buffer.length, InetAddress.getByName(groupIP), PORT);
                 socket.receive(packet);
 
@@ -125,23 +125,26 @@ public class NodeMulticastListener {
                     // Setting on remote
                     System.out.println("received node is " + receivedNode);
                     System.out.println("currentNode is " + currentNode.asEntityIn());
-                    RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode.asEntityIn());
-                    RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode.asEntityIn());
+                    RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
+                    RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
                 } else if (this.ringStorage.currentHash() < hashedOtherNode && hashedOtherNode < nextNode.getNodeHash()) {
                     System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
-                    this.ringStorage.setNode("NEXT", receivedNode);
-                    RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode.asEntityIn());
+                    NodeEntity temp =  this.ringStorage.setNode("NEXT", receivedNode);
+                    System.out.println("Storage set node:" + temp);
+                    RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode);
+                    RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
                 } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
                     System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
                     this.ringStorage.setNode("PREVIOUS", receivedNode);
-                    RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
-                } else if (this.ringStorage.currentHash() > hashedOtherNode && this.ringStorage.currentIsLargest()) {
+                    RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
+                    RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
+                } else if (this.ringStorage.currentHash() < hashedOtherNode && this.ringStorage.currentIsLargest()) {
                     // Adjust PREVIOUS's NEXT to received
-                    RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode.asEntityIn());
+                    RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
 
                     // Give the new node correct neighbours
-                    RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode.asEntityIn());
-                    RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", nextNode.asEntityIn());
+                    RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
+                    RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", nextNode);
 
                     // Adjust own next
                     this.ringStorage.setNode("NEXT", receivedNode);
