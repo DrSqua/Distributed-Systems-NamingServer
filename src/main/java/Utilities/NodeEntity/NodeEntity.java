@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
 import java.io.File;
+import java.util.Objects;
 
 
 public class NodeEntity {
@@ -54,5 +55,17 @@ public class NodeEntity {
 
     public void setNodeName(String nodeName) {
         this.nodeName = nodeName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;  // If function pointers are equal
+        if (!(o instanceof NodeEntity that)) return false;  // If other is not NodeEntity
+        return Objects.equals(nodeHash, that.nodeHash);  // If both hashes are equal
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(nodeHash);
     }
 }
