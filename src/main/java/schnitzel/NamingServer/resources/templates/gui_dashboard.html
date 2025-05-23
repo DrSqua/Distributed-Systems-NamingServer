@@ -97,6 +97,29 @@
             padding-top: 20px;
             border-top: 1px solid #34495e;
         }
+        .icon-remove-btn { /* New class for the icon button */
+            background-color: #e74c3c; /* Red background from your .remove-node-btn */
+            width: 28px;  /* Adjust size for a small square button */
+            height: 28px; /* Adjust size */
+            padding: 0; /* Remove padding if the button itself is sized */
+            display: inline-flex; /* To help center SVG content */
+            align-items: center;
+            justify-content: center;
+            /* Inherit other .action-button styles like border-radius, cursor if needed, or redefine */
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 5px; /* Keep existing margin */
+            flex-shrink: 0; /* Keep from existing .action-button */
+        }
+        .icon-remove-btn:hover {
+            background-color: #c0392b; /* Darker red from your .remove-node-btn:hover */
+        }
+        .icon-remove-btn svg {
+            width: 16px;  /* Size of the SVG icon inside the button */
+            height: 16px;
+            fill: white;  /* Color of the icon */
+        }
     </style>
     <meta http-equiv="refresh" content="5" >
 </head>
@@ -114,9 +137,14 @@
             <form th:action="@{/gui/node/remove}" method="post" style="display: inline;">
                 <input type="hidden" name="node_ip" th:value="${node.ipAddress}" />
                 <input type="hidden" name="node_hash" th:value="${node.nodeHash}" />
-                <button type="submit" class="action-button remove-node-btn"
-                        th:attr="onclick='return confirm(\'Are you sure you want to send SHUTDOWN signal to node: ' + ${node.nodeName} + ' (' + ${node.ipAddress} + ')? This node will then de-register itself.\');'">
-                    Remove
+                <button type="submit" class="action-button icon-remove-btn"
+                th:title="'Shutdown node: ' + ${node.nodeName} + ' (' + ${node.ipAddress} + ')'"
+                th:attr="onclick='return confirm(\'Are you sure you want to send SHUTDOWN signal to node: ' + ${node.nodeName} + ' (' + ${node.ipAddress} + ')? This node will then de-register itself.\');'" >
+                <!-- SVG Garbage Can Icon -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    <path fill="none" d="M0 0h24v24H0z"/>
+                </svg>
                 </button>
             </form>
         </li>
