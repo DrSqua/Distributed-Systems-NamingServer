@@ -38,7 +38,8 @@ public class OnShutdownBean {
         NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElseThrow(() ->
                 new IllegalStateException("Existing Node does not have previous set")
         );
-        System.out.println("Shutting down Node " + this.ringStorage.currentName());
+        System.out.println("Shutting down self " + this.ringStorage.currentName());
+
         RestMessagesRepository.removingSelfFromSystem(this.ringStorage.getSelf(), this.ringStorage.getNamingServerIP(), previousNode, nextNode);
         try {
             handleLocalFiles();
