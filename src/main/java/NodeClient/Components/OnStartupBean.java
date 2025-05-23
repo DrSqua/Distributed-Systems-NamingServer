@@ -3,6 +3,7 @@ package NodeClient.Components;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
 import Utilities.NodeEntity.NodeEntity;
+import ch.qos.logback.core.joran.conditional.ThenAction;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,53 +20,40 @@ import java.nio.charset.StandardCharsets;
 public class OnStartupBean {
 
     private final RingStorage ringStorage;
+    @Value("${multicast.port}")
+    private int PORT;
+    private int responsePORT = 50000;
+
 
     public OnStartupBean(RingStorage ringStorage) {
         this.ringStorage = ringStorage;
     }
 
     @Value("${multicast.port}")
-    private int multicastPort;
-
-    @Value("${unicast.port}")
-    private int unicastPort;
+    private int port;
 
     @Value("${multicast.groupIP}")
     private String groupIP;
 
-    /**
-     * On startup, node send out a multicast message with own name and IP Address
-     * IMPORTANT: StartupBean needs to wait for the Tomcat REST Controller to start up.
-     * Otherwise, other Node might get a connection refused as this node won't be listening on the correct port.
-     * Steps:
-     *  1) Sleep
-     *  2) Join multicast group and send "startup" multicast message
-     *  3) Receives back nodesInNetwork as integer
-     *  4) Depending on nodesInNetwork, performs branching neighbour logic
-     */
     @PostConstruct
     public void notifyNetwork() throws InterruptedException {
-        // Tomcat is often still not initialised when asking to set the neighbours so give it some extra time
-        // this will make sure we can send the message when everything is set
-        Thread.sleep(500);
-
-        try(MulticastSocket socket = new MulticastSocket(multicastPort)) {
+        Thread.sleep(2000);
+        try(MulticastSocket socket = new MulticastSocket(PORT)) {
             // Define the multicast group address and port (can be customized)
             String clientIP = this.ringStorage.getOwnIp();
-            Multicast multicast = new Multicast(clientIP,groupIP, multicastPort);
+            Multicast multicast = new Multicast(clientIP,groupIP, port);
 
             multicast.JoinMulticast();
             String nodeName = System.getProperty("user.name"); // Using the system's username as the node name
-            multicast.SendNodeInfo(nodeName+","+clientIP);
+            multicast.SendNodeInfo(nodeName+","+clientIP+","+responsePORT);
 
             byte[] buffer = new byte[1024];
             System.out.println("waiting for the response of the namingServer");
+            //DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
             System.out.println("Waiting for naming-server’s unicast reply… Listening on ip " + clientIP);
-            DatagramSocket socket2 = new DatagramSocket(unicastPort);
+            DatagramSocket socket2 = new DatagramSocket(responsePORT);
             socket2.receive(packet);
-
             System.out.println("we received a response: "+packet.getLength());
             String message = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
             int numberOfNodes = Integer.parseInt(message);

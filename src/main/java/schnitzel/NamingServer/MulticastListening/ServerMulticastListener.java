@@ -18,10 +18,8 @@ public class ServerMulticastListener {
     public Multicast multicast;
 
     @Value("${multicast.port}")
-    private int multicastPort;
+    private int PORT;
 
-    @Value("${unicast.port}")
-    private int unicastPort;
 
     @Value("${server.port}")
     private int unicast_PORT;
@@ -38,7 +36,7 @@ public class ServerMulticastListener {
     @PostConstruct
     public void start() {
         try {
-            this.multicast = new Multicast(IP, groupIP, multicastPort);
+            this.multicast = new Multicast(IP, groupIP, PORT);
             new Thread(this::listen).start();
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,7 +44,7 @@ public class ServerMulticastListener {
     }
 
     private void listen() {
-        try(MulticastSocket socket = new MulticastSocket(multicastPort)) {
+        try(MulticastSocket socket = new MulticastSocket(PORT)) {
             InetAddress group = InetAddress.getByName(groupIP);
 
             // Enable loopback mode
@@ -65,18 +63,19 @@ public class ServerMulticastListener {
             }
 
             // Join the multicast group
-            socket.joinGroup(new InetSocketAddress(group, multicastPort), networkInterface);
-            System.out.println("Joined group: " + group.getHostAddress() + ":"+multicastPort);
+            socket.joinGroup(new InetSocketAddress(group, PORT), networkInterface);
+            System.out.println("Joined group: " + group.getHostAddress() + ":"+PORT);
 
             byte[] buffer = new byte[1024];
             while(true){
-                DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), multicastPort);
+                DatagramPacket packet = new DatagramPacket(buffer,0, buffer.length, InetAddress.getByName(groupIP), PORT);
                 socket.receive(packet);
                 String message = new String(packet.getData(), 0, packet.getLength());
                 System.out.println(message);
                 String nodeName = message.split(",")[0];
                 String nodeIP = message.split(",")[1];
                 System.out.println("Received a multicast message from a new node with ip: " + nodeIP);
+                String responsePORT = message.split(",")[2];
                 Long hash = NamingServerHash.hashNode(nodeName, nodeIP);
                 NodeEntity node = new NodeEntity(nodeIP, nodeName);
                 storage.put(hash,node);
@@ -86,22 +85,23 @@ public class ServerMulticastListener {
                  *  We made this a multicast, because this number needs to be updated by all nodes (otherwise
                  *  they will have an incorrect number).
                  */
+
                 String response = String.valueOf(storage.count());
                 System.out.println("number of nodes: " + response);
                 byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-
+                int port = Integer.parseInt(responsePORT);
                 // Send a direct (unicast) reply back to the sender
                 try (DatagramSocket respSocket = new DatagramSocket()) {
                     DatagramPacket respPacket = new DatagramPacket(
                             responseBytes,
                             responseBytes.length,
                             packet.getAddress(),   // the node’s IP
-                            unicastPort       // the node’s source port
+                            port       // the node’s source port
                     );
                     respSocket.send(respPacket);
                     System.out.println("packet send to node");
                     System.out.printf("Unicast reply (%s) sent to %s:%d%n",
-                            response, packet.getAddress().getHostAddress(), unicastPort);
+                            response, packet.getAddress().getHostAddress(), packet.getPort());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

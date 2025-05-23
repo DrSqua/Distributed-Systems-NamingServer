@@ -31,7 +31,7 @@ public class OnShutdownBean {
     }
 
     @PreDestroy
-    public void destroy() throws IOException {
+    public void destroy() throws IOException, InterruptedException {
         NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElseThrow(() ->
                 new IllegalStateException("Existing Node does not have next set")
         );

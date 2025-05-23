@@ -16,7 +16,8 @@ public class RestMessagesRepository {
     private static final int nodeClientPort = 8081;
     private static final int namingServerPort = 8080;
 
-    public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) {
+    public static void updateNeighbour(NodeEntity neighbour, String direction, NodeEntityIn data) throws InterruptedException {
+        Thread.sleep(1000);
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
         HttpEntity<NodeEntityIn> request = new HttpEntity<>(data);
@@ -51,7 +52,7 @@ public class RestMessagesRepository {
         return new RestTemplate().getForObject(url, String.class);
     }
 
-    public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) {
+    public static void removingSelfFromSystem(NodeEntity node, String namingServerIP, NodeEntity previousNeighbour, NodeEntity nextNeighbour) throws InterruptedException {
         // Tell neighbours they are now each other's neighbour
         // Only if neighbour is not self
         if (!node.equals(previousNeighbour) && !node.equals(nextNeighbour)) {

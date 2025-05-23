@@ -1,5 +1,6 @@
 package Utilities.NodeEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
 import schnitzel.NamingServer.NamingServerHash;
 
 import java.nio.file.Path;
@@ -66,6 +67,10 @@ public class NodeEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(nodeHash);
+        try {
+            throw new Exception();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
