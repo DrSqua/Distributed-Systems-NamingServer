@@ -31,6 +31,11 @@ public class FileService {
     public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) {
         try {
             Files.createDirectories(localPath);
+            /*
+            Dit toevoegen als je een file wilt bij opstart in de local_files folder
+            Path targetPath = localPath.resolve("file.txt");
+            Files.write(targetPath, "Hello World".getBytes());
+             */
             Files.createDirectories(replicatedPath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -41,6 +46,10 @@ public class FileService {
 
     public FileLoggerService getFileLoggerService() {
         return fileLoggerService;
+    }
+
+    public RingStorage getRingStorage() {
+        return ringStorage;
     }
 
     public Set<String> getLockedFiles() {
@@ -62,6 +71,10 @@ public class FileService {
             case "CREATE":
                 targetPath = localFilePath;
                 Files.write(targetPath, message.fileData(), StandardOpenOption.CREATE);
+                // register that this is the original file owner
+                String namingServerIp = ringStorage.getNamingServerIP();
+                long originalOwnerNodeHash = NamingServerHash.hash(ringStorage.getSelf().getNodeName());
+                RestMessagesRepository.registerFileOriginalOwner(fileHash, originalOwnerNodeHash, namingServerIp);
                 break;
             case "REPLICATE":
                 targetPath = replicatedFilePath;
@@ -83,7 +96,7 @@ public class FileService {
                 unlockFile(fileName);
                 break;
         }
-        fileLoggerService.logOperation(fileName, fileHash, operation, String.valueOf(targetPath));
+        fileLoggerService.logOperation(fileName, fileHash, operation, ringStorage.currentName(), String.valueOf(targetPath));
     }
 
     // handle "TRANSFER" operation
@@ -104,7 +117,7 @@ public class FileService {
         List<FileLogEntry> logs = fileLoggerService.getLogsForFile(fileName);
         fileLoggerService.writeLogs(logs);
         // write the transfer log
-        fileLoggerService.logOperation(fileName, fileHash, operation, String.valueOf(targetPath));
+        fileLoggerService.logOperation(fileName, fileHash, operation, ringStorage.currentName(), String.valueOf(targetPath));
     }
 
     // handle "DOWNLOAD" operation
@@ -113,7 +126,7 @@ public class FileService {
         // we only need to check the localPath as the naming server already checked for ownership
         Path filePath = localPath.resolve(fileName);
         if (Files.exists(filePath)) {
-            fileLoggerService.logOperation(fileName, fileHash, "DOWNLOAD", String.valueOf(filePath));
+            fileLoggerService.logOperation(fileName, fileHash, "DOWNLOAD", ringStorage.currentName(), String.valueOf(filePath));
             return Files.readAllBytes(filePath);
         }
         return null;
@@ -210,6 +223,16 @@ public class FileService {
         handleFileOperations(new FileMessage(fileName, "UNLOCKED", null));
         replicateToNeighbors(fileName, "UNLOCKED", null);
         System.out.println("Finished editing file: " + fileName);
+    }
+
+    // send a replicated file to the local_files as we're now the owner of this file
+    public void promoteReplicaToLocal(String fileName, byte[] fileData) throws IOException {
+        Path replicatedFilePath = replicatedPath.resolve(fileName);
+        Path localFilePath = localPath.resolve(fileName);
+        // Copy file to localFilePath
+        Files.write(localFilePath, fileData, StandardOpenOption.CREATE);
+        // Delete the replicated file
+        Files.deleteIfExists(replicatedFilePath);
     }
 
     private void lockFile(String fileName) {
