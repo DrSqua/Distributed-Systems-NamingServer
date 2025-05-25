@@ -6,15 +6,16 @@ import NodeClient.File.FileService;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.NodeEntity.NodeEntity;
 import Utilities.RestMessagesRepository;
+
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
-import org.springframework.context.ApplicationContext;
+import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 
 public class SyncAgent extends Agent {
     // Can't inject fileService as @Aurowired, we need to inject it manually by using transient to avoid serialization issues
@@ -22,15 +23,23 @@ public class SyncAgent extends Agent {
     private transient RingStorage ringStorage;
     private final int tickPeriod = 5000;
 
-    private Map<String, Boolean> agentLockStates;
+    private final Map<String, Boolean> agentLockStates = new HashMap<>();
+
+    // JADE requires no argument constructor
+    public SyncAgent() {}
 
     @Override
     protected void setup() {
+        Object[] args = getArguments();
+        if (args != null && args.length >= 2) {
+            this.fileService = (FileService) args[0];
+            this.ringStorage = (RingStorage) args[1];
+        } else {
+            System.err.println("SyncAgent requires 2 arguments");
+            doDelete();
+            return;
+        }
         System.out.println("Starting Sync Agent");
-        // fetch spring beans
-        ApplicationContext context = (ApplicationContext) getArguments()[0];
-        this.fileService = context.getBean(FileService.class);
-        this.ringStorage = context.getBean(RingStorage.class);
         addBehaviour(new TickerBehaviour(this, tickPeriod) {
             @Override
             protected void onTick() {
@@ -39,7 +48,6 @@ public class SyncAgent extends Agent {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
             }
         });
     }
@@ -52,26 +60,51 @@ public class SyncAgent extends Agent {
         NodeEntity previousNode = ringStorage.getNode("PREVIOUS").orElse(null);
         syncWithNeighbor(nextNode, localFileSet);
         syncWithNeighbor(previousNode, localFileSet);
+        syncLockStates();
     }
 
     private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException {
         FileListResponse neighborFiles = RestMessagesRepository.getFileListResponse(node);
         Set<String> replicatedSet = new HashSet<>(neighborFiles.replicatedFiles());
 
+        // if there is a file that isn't yet on the neighbor's replicated_files we replicate that file to the neighbor
         for (String fileName: localFileSet) {
             if (!replicatedSet.contains(fileName)) {
-                byte[] data = fileService.downloadFile(fileName);
-                if (data != null) {
+                Path localPath = Paths.get("local_files").toAbsolutePath();
+                Path filePath = localPath.resolve(fileName);
+                byte[] data = Files.readAllBytes(filePath);
                     FileMessage message = new FileMessage(fileName, "REPLICATE", data);
                     RestMessagesRepository.handleFileOperations(message, node.getIpAddress());
+            }
+        }
+        // if there is a file on the neighbor's replicated_files but not on our owned files we delete them on the neighbor's node
+        for (String fileName: replicatedSet) {
+            // first check if we owned this file
+            long fileHash = NamingServerHash.hash(fileName);
+            String ownerName = RestMessagesRepository.getFileOwner(fileHash, ringStorage.getNamingServerIP()).getNodeName();
+            String currentNodeName = ringStorage.currentName();
+            if (ownerName != null && ownerName.equals(currentNodeName)) {
+                // now check if the replicated file is still in our local_files, otherwise delete replica
+                if (!localFileSet.contains(fileName)) {
+                    FileMessage msg = new FileMessage(fileName, "DELETE_REPLICA", null);
+                    RestMessagesRepository.handleFileOperations(msg, node.getIpAddress());
                 }
             }
         }
+    }
 
-        for (String fileName: replicatedSet) {
-            if (!localFileSet.contains(fileName)) {
-                FileMessage msg = new FileMessage(fileName, "DELETE_REPLICA", null);
-                RestMessagesRepository.handleFileOperations(msg, node.getIpAddress());
+    private void syncLockStates() {
+        Set<String> currentLockedFiles = fileService.getLockedFiles();
+        // Sync locked files
+        for (String fileName: currentLockedFiles) {
+            if (!agentLockStates.getOrDefault(fileName, false)) {
+                agentLockStates.put(fileName, true);
+            }
+        }
+        Set<String> previouslyLocked = new HashSet<>(agentLockStates.keySet());
+        for (String fileName: previouslyLocked) {
+            if (!currentLockedFiles.contains(fileName) && agentLockStates.get(fileName)) {
+                agentLockStates.put(fileName, false);
             }
         }
     }
