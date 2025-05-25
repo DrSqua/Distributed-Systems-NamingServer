@@ -1,11 +1,20 @@
 package Utilities;
 
+import NodeClient.Agents.FailureAgent;
 import NodeClient.File.FileListResponse;
 import NodeClient.File.FileMessage;
 import Utilities.NodeEntity.NodeEntity;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.ConnectException;
+import java.util.List;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -54,7 +63,7 @@ public class RestMessagesRepository {
 
     public static String checkReplicationResponsibility(long fileHash, long nodeHash, String namingServerIp) {
         String parameters = "fileHash=" + fileHash + "&nodeHash=" + nodeHash;
-        String url = "http://" + namingServerIp + ":" + namingServerPort + "/node/replication?" + parameters;
+        String url = "http://" + namingServerIp + ":" + namingServerPort + "/file/replication?" + parameters;
         return new RestTemplate().getForObject(url, String.class);
     }
 
@@ -80,12 +89,37 @@ public class RestMessagesRepository {
     }
 
     public static NodeEntity getFileOwner(long FileHash, String namingServerIp) {
-        String url = "http://" + namingServerIp + ":" + namingServerPort + "/node/owner?fileHash=" + FileHash;
+        String url = "http://" + namingServerIp + ":" + namingServerPort + "/file/owner?fileHash=" + FileHash;
         return new RestTemplate().getForObject(url, NodeEntity.class);
+    }
+
+    public static NodeEntity getFileOriginalOwner(long fileHash, String namingServerIp) {
+        String url = "http://" + namingServerIp + ":" + namingServerPort + "/file/original-owner?fileHash=" + fileHash;
+        return new RestTemplate().getForObject(url, NodeEntity.class);
+    }
+
+    public static void registerFileOriginalOwner(long fileHash, long originalNodeHash, String namingServerIp) {
+        String url = "http://" + namingServerIp + ":" + namingServerPort + "/file/register-original-owner";
+        String parameters = "fileHash=" + fileHash + "&originalNodeHash=" + originalNodeHash;
+        new RestTemplate().postForObject(url + "?" + parameters, null, Void.class);
     }
 
     public static FileListResponse getFileListResponse(NodeEntity node) {
         String url = "http://" + node.getIpAddress() + ":" + nodeClientPort + "/node/file/list";
         return new RestTemplate().getForObject(url, FileListResponse.class);
+    }
+
+    public static void sendAgentToNode(FailureAgent failureAgent, String targetNodeIp) throws IOException {
+        String url = "http://" + targetNodeIp + ":" + nodeClientPort + "/node/agent/receive";
+        // serialize agent to byte array
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(failureAgent);
+        oos.flush();
+        byte[] agentBytes = bos.toByteArray();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        HttpEntity<byte[]> requestEntity = new HttpEntity<>(agentBytes, headers);
+        new RestTemplate().postForObject(url, requestEntity, Void.class);
     }
 }
