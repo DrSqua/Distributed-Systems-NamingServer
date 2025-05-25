@@ -11,6 +11,7 @@ import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,16 @@ public class FileCheckerBean {
 
         // Check if there are more than 1 node on our system
         // ,so we have a node to replicate to
-        while (ringStorage.getCurrentNodeCount() <= 1) {
+        NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElse(null);
+        NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElse(null);
+        NodeEntity currentNode;
+        try {
+            currentNode = this.ringStorage.getSelf();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            return;
+        }
+        while (currentNode.equals(previousNode) && currentNode.equals(nextNode)) {
             try {
                 // Wait 0.5 seconds before checking again
                 Thread.sleep(500);
@@ -89,8 +99,17 @@ public class FileCheckerBean {
     // Check every 5 seconds for changes on localFolder for replication
     private void checkFiles() throws InterruptedException, IOException {
         while (true) {
+            NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElse(null);
+            NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElse(null);
+            NodeEntity currentNode;
+            try {
+                currentNode = this.ringStorage.getSelf();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+                return;
+            }
             // check if we have a node to replicate to
-            if (ringStorage.getCurrentNodeCount() <= 1) {
+            if (currentNode.equals(previousNode) && currentNode.equals(nextNode)) {
                 Thread.sleep(500);
                 continue;
             }
