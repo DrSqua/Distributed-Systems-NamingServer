@@ -25,8 +25,8 @@ public class FileLoggerService {
         }
     }
 
-    public synchronized void logOperation(String fileName, long hash, String operation, String localPath) {
-        FileLogEntry newEntry = new FileLogEntry(fileName, hash, operation, Instant.now().toString(), localPath);
+    public synchronized void logOperation(String fileName, long hash, String operation, String currentNodeName, String localPath) {
+        FileLogEntry newEntry = new FileLogEntry(fileName, hash, operation,currentNodeName, Instant.now().toString(), localPath);
         try (FileWriter fw = new FileWriter(logFile, true);
              BufferedWriter bw = new BufferedWriter(fw);
              PrintWriter out = new PrintWriter(bw)) {
