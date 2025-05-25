@@ -204,13 +204,7 @@ public class DashboardGuiController {
     @PostMapping("/gui/namingserver/shutdown")
     public String shutdownNamingServer(RedirectAttributes redirectAttributes) {
         log.warn("Received request to SHUTDOWN THE NAMING SERVER.");
-        // You can't really redirect after this if it's successful,
-        // as the server will be shutting down.
-        // The response might not even reach the client fully.
-        // The main purpose is to trigger the shutdown.
 
-        // Optionally, add a small delay if you want to try and send a message back,
-        // but it's not guaranteed.
         new Thread(() -> {
             try {
                 Thread.sleep(500); // Give a moment for a potential response partial send
