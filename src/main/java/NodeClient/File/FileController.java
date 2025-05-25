@@ -1,22 +1,30 @@
 package NodeClient.File;
 
+import NodeClient.NodeClient;
+import NodeClient.Agents.FailureAgent;
+import Utilities.RestMessagesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.List;
 
 @RestController
 @RequestMapping("/node/file")
 public class FileController {
     private final FileService fileService;
+    private final ApplicationContext applicationContext;
 
     @Autowired
-    public FileController(FileService fileService) {
+    public FileController(FileService fileService, ApplicationContext applicationContext) {
         this.fileService = fileService;
+        this.applicationContext = applicationContext;
     }
 
     // User calls the right node to download the file no extra checkups
@@ -71,5 +79,27 @@ public class FileController {
     @PostMapping("/transfer")
     public void handleTransfer(@RequestBody FileMessage message) throws IOException {
         fileService.handleTransfer(message);
+    }
+
+    @PostMapping("/agent/receive")
+    public ResponseEntity<Void> receiveAgent(@RequestBody byte[] agentBytes) throws Exception {
+        // read the incoming bytes and check if it's a FailureAgent
+        ByteArrayInputStream bis = new ByteArrayInputStream(agentBytes);
+        ObjectInputStream ois = new ObjectInputStream(bis);
+        Object obj = ois.readObject();
+        if (obj instanceof FailureAgent receivedAgent) {
+            NodeClient nodeClient = applicationContext.getBean(NodeClient.class);
+            Object[] arguments = new Object[] {
+                    fileService,
+                    fileService.getRingStorage(),
+                    receivedAgent.getFailingNodeName(),
+                    receivedAgent.getStartedNodeName()
+            };
+            nodeClient.startReceivedAgent(receivedAgent, arguments);
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
+        else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }
