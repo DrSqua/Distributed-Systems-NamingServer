@@ -3,6 +3,7 @@ package Utilities;
 import NodeClient.Agents.FailureAgent;
 import NodeClient.File.FileListResponse;
 import NodeClient.File.FileMessage;
+import NodeClient.File.ReadyForReplication;
 import Utilities.NodeEntity.NodeEntity;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,7 +31,7 @@ public class RestMessagesRepository {
         String url = "http://" + neighbour.getIpAddress() + ":"+ nodeClientPort +"/ring/" + direction;
 
         System.out.println(InetAddress.getLocalHost().getHostAddress() + " sending " + data + " " + url);
-
+        ReadyForReplication.setIsReadyForReplication(true);
         HttpEntity<NodeEntity> request = new HttpEntity<>(data);
         restTemplate.postForEntity(url, request, Void.class);
     }
@@ -80,7 +81,8 @@ public class RestMessagesRepository {
         RestMessagesRepository.removeFromNamingServer(node, namingServerIP);
     }
 
-    public static void handleFileOperations(FileMessage message, String targetNodeIp) {
+    public static void handleFileOperations(FileMessage message, String targetNodeIp) throws InterruptedException {
+        Thread.sleep(1000);
         new RestTemplate().postForObject("http://" + targetNodeIp + ":" + nodeClientPort + "/node/file/replication", message, Void.class);
     }
 

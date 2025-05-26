@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import schnitzel.NamingServer.NamingServerHash;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.*;
 import java.util.List;
@@ -30,12 +31,16 @@ public class FileService {
     @Autowired
     public FileService(RingStorage ringStorage, FileLoggerService fileLoggerService) {
         try {
+            String thisNodesIP = InetAddress.getLocalHost().toString();
+            String lastID = thisNodesIP.substring(thisNodesIP.lastIndexOf('.') + 1);
             Files.createDirectories(localPath);
-            /*
-            Dit toevoegen als je een file wilt bij opstart in de local_files folder
-            Path targetPath = localPath.resolve("file.txt");
-            Files.write(targetPath, "Hello World".getBytes());
-             */
+            Path targetPath = localPath.resolve("node"+lastID+".txt" );
+            Files.writeString(
+                    targetPath,
+                    "Node, with hash: "+ringStorage.currentHash()+ ", IP: "+thisNodesIP+"\n",
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING
+            );
             Files.createDirectories(replicatedPath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -132,7 +137,7 @@ public class FileService {
         return null;
     }
 
-    public void replicateToNeighbors(String fileName, String operation, byte[] data) {
+    public void replicateToNeighbors(String fileName, String operation, byte[] data) throws InterruptedException {
         // Getting next node
         NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElse(null);
         // Getting previous node
@@ -169,7 +174,7 @@ public class FileService {
         }
     }
 
-    private void replicateToOneNeighbor(String fileName, String operation, byte[] data) {
+    private void replicateToOneNeighbor(String fileName, String operation, byte[] data) throws InterruptedException {
         FileMessage message = new FileMessage(fileName, operation, data);
         // Getting next node and its IP
         NodeEntity nextNode = ringStorage.getNode("NEXT").orElseThrow(() ->
@@ -202,7 +207,7 @@ public class FileService {
                 .toList();
     }
 
-    public void editFile(String fileName) throws IOException {
+    public void editFile(String fileName) throws IOException, InterruptedException {
         if (isFileLocked(fileName)) {
             System.out.println("File is locked");
             return;

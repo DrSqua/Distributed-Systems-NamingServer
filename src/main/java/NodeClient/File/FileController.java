@@ -50,14 +50,14 @@ public class FileController {
     }
 
     @DeleteMapping("/{name}")
-    public void deleteFile(@PathVariable String name) throws IOException {
+    public void deleteFile(@PathVariable String name) throws IOException, InterruptedException {
         FileMessage message = new FileMessage(name, "DELETE_LOCAL", null);
         fileService.handleFileOperations(message);
         fileService.replicateToNeighbors(name, "DELETE_REPLICA", null);
     }
 
     @PostMapping("/edit/{name}")
-    public void editFile(@PathVariable String name) throws IOException {
+    public void editFile(@PathVariable String name) throws IOException, InterruptedException {
         fileService.editFile(name);
     }
 

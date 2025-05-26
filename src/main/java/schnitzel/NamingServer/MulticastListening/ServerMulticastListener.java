@@ -34,13 +34,9 @@ public class ServerMulticastListener {
     }
 
     @PostConstruct
-    public void start() {
-        try {
-            this.multicast = new Multicast(IP, groupIP, PORT);
-            new Thread(this::listen).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void start() throws IOException {
+        this.multicast = new Multicast(IP, groupIP, PORT);
+        new Thread(this::listen).start();
     }
 
     private void listen() {
@@ -52,10 +48,10 @@ public class ServerMulticastListener {
 
             // Specify network interface (optional, set to null for default)
             // local
-            // NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
 
             //remote
-            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+            //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {

@@ -52,7 +52,7 @@ public class SyncAgent extends Agent {
         });
     }
 
-    private void performSync() throws IOException {
+    private void performSync() throws IOException, InterruptedException {
         List<String> localFiles = fileService.listLocalFiles();
         Set<String> localFileSet = new HashSet<>(localFiles);
 
@@ -63,7 +63,7 @@ public class SyncAgent extends Agent {
         syncLockStates();
     }
 
-    private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException {
+    private void syncWithNeighbor(NodeEntity node, Set<String> localFileSet) throws IOException, InterruptedException {
         FileListResponse neighborFiles = RestMessagesRepository.getFileListResponse(node);
         Set<String> replicatedSet = new HashSet<>(neighborFiles.replicatedFiles());
 

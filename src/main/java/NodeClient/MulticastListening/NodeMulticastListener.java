@@ -1,5 +1,6 @@
 package NodeClient.MulticastListening;
 
+import NodeClient.File.ReadyForReplication;
 import NodeClient.RingAPI.RingStorage;
 import Utilities.Multicast;
 import Utilities.NodeEntity.NodeEntity;
@@ -51,10 +52,10 @@ public class NodeMulticastListener {
 
             // Specify network interface (optional, set to null for default)
             // local
-            // NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
 
             //remote
-            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+            //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {
@@ -122,16 +123,21 @@ public class NodeMulticastListener {
                     // Setting on remote
                     RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
+                    ReadyForReplication.setIsReadyForReplication(true);
                 } else if (this.ringStorage.currentHash() < hashedOtherNode && hashedOtherNode < nextNode.getNodeHash()) {
                     // System.out.println("Received hash" + hashedOtherNode + "falls in [SELF, PREVIOUS]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
                     this.ringStorage.setNode("NEXT", receivedNode);
                     RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
+                    ReadyForReplication.setIsReadyForReplication(true);
+
                 } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
                     // System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
                     this.ringStorage.setNode("PREVIOUS", receivedNode);
                     RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
+                    ReadyForReplication.setIsReadyForReplication(true);
+
                 } else if (this.ringStorage.currentHash() < hashedOtherNode && this.ringStorage.currentIsLargest()) {
                     // Adjust PREVIOUS's NEXT to received
                     RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
@@ -142,7 +148,9 @@ public class NodeMulticastListener {
 
                     // Adjust own next
                     this.ringStorage.setNode("NEXT", receivedNode);
+                    ReadyForReplication.setIsReadyForReplication(true);
                 }
+
                 // Else do nothing
             }
         } catch (InterruptedException e) {
