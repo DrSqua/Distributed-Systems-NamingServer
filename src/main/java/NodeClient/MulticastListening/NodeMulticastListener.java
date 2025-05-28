@@ -52,10 +52,10 @@ public class NodeMulticastListener {
 
             // Specify network interface (optional, set to null for default)
             // local
-            NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
+            //NetworkInterface networkInterface = NetworkInterface.getByName("NPF_Loopback"); // Replace or set to null
 
             //remote
-            //NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
+            NetworkInterface networkInterface = NetworkInterface.getByName("eth0"); // Replace or set to null
             if (networkInterface == null) {
                 System.out.println("Using default network interface");
             } else {
@@ -130,6 +130,7 @@ public class NodeMulticastListener {
                     RestMessagesRepository.updateNeighbour(nextNode, "PREVIOUS", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "PREVIOUS", currentNode);
                     ReadyForReplication.setIsReadyForReplication(true);
+                    ReadyForReplication.setHasNewNodeEntered(true);
 
                 } else if (previousNode.getNodeHash() < hashedOtherNode && hashedOtherNode < this.ringStorage.currentHash()) {
                     // System.out.println("Received hash" + hashedOtherNode + "falls in [PREVIOUS, SELF]" + this.ringStorage.currentHash() + ", " + nextNode.getNodeHash() + "region, updating!");
@@ -137,6 +138,7 @@ public class NodeMulticastListener {
                     RestMessagesRepository.updateNeighbour(previousNode, "NEXT", receivedNode);
                     RestMessagesRepository.updateNeighbour(receivedNode, "NEXT", currentNode);
                     ReadyForReplication.setIsReadyForReplication(true);
+                    ReadyForReplication.setHasNewNodeEntered(true);
 
                 } else if (this.ringStorage.currentHash() < hashedOtherNode && this.ringStorage.currentIsLargest()) {
                     // Adjust PREVIOUS's NEXT to received
@@ -149,6 +151,7 @@ public class NodeMulticastListener {
                     // Adjust own next
                     this.ringStorage.setNode("NEXT", receivedNode);
                     ReadyForReplication.setIsReadyForReplication(true);
+                    ReadyForReplication.setHasNewNodeEntered(true);
                 }
 
                 // Else do nothing

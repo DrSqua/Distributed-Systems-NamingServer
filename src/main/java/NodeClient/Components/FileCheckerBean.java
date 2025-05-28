@@ -154,6 +154,7 @@ public class FileCheckerBean {
                 if (!localFile.isFile()) {
                     continue;
                 }
+                System.out.println("Checking file in the loop: " + localFile.getName());
                 String fileName = localFile.getName();
                 long fileHash = NamingServerHash.hash(fileName);
                 if (!knownFiles.containsKey(fileName) || knownFiles.get(fileName) != fileHash) {
@@ -161,7 +162,13 @@ public class FileCheckerBean {
                     byte[] data = Files.readAllBytes(localFile.toPath());
                     fileService.replicateToNeighbors(fileName, "REPLICATE", data);
                 }
+                if (ReadyForReplication.getHasNewNodeEntered()) {
+                    System.out.println("Checking ready for replication with 3 nodes: " + localFile.getName());
+                    byte[] data = Files.readAllBytes(localFile.toPath());
+                    fileService.replicateToNeighbors(fileName, "REPLICATE", data);
+                }
             }
+            ReadyForReplication.setHasNewNodeEntered(false);
             Thread.sleep(5000);
         }
     }

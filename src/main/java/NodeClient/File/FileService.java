@@ -140,8 +140,10 @@ public class FileService {
     public void replicateToNeighbors(String fileName, String operation, byte[] data) throws InterruptedException {
         // Getting next node
         NodeEntity nextNode = this.ringStorage.getNode("NEXT").orElse(null);
+        System.out.println("ReplicateToNeighbors (next): "+nextNode);
         // Getting previous node
         NodeEntity previousNode = this.ringStorage.getNode("PREVIOUS").orElse(null);
+        System.out.println("ReplicateToNeighbors (previous): "+previousNode);
         // Getting current node
         NodeEntity currentNode;
         try {
