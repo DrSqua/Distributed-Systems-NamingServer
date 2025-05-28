@@ -18,7 +18,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class SyncAgent extends Agent {
-    // Can't inject fileService as @Aurowired, we need to inject it manually by using transient to avoid serialization issues
+    // Can't inject fileService as @Autowired, we need to inject it manually by using transient to avoid serialization issues
     private transient FileService fileService;
     private transient RingStorage ringStorage;
     private final int tickPeriod = 5000;
