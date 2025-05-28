@@ -159,11 +159,11 @@ public class FileService {
         String nextIpAddress = nextNode.getIpAddress();
         String previousIpAddress = previousNode.getIpAddress();
         // if 1 neighbor
-        if (nextNode.equals(previousNode)) {
+        if (ringStorage.getCurrentNodeCount() == 2) {
             replicateToOneNeighbor(fileName, operation, data);
         }
         // if more then 1 neighbor (so Prev and next are not himself)
-        else if (!(currentNode.equals(nextNode) && currentNode.equals(previousNode))){
+        else if (ringStorage.getCurrentNodeCount() >= 3){
             FileMessage message = new FileMessage(fileName, operation, data);
             try {
                 // Send a Post request to next node for file replication
@@ -211,7 +211,7 @@ public class FileService {
 
     public void editFile(String fileName) throws IOException, InterruptedException {
         if (isFileLocked(fileName)) {
-            System.out.println("File is locked");
+            System.out.println("File " + fileName + " is locked");
             return;
         }
         // lock file and replicate to neighbors that they need to lock as well

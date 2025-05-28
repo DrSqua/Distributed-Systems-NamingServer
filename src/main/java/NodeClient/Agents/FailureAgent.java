@@ -42,7 +42,7 @@ public class FailureAgent extends Agent {
     @Override
     protected void setup() {
         Object[] args = getArguments();
-        if (args != null && args.length <= 3) {
+        if (args != null && args.length <= 4) {
             this.fileService = (FileService) args[0];
             this.ringStorage = (RingStorage) args[1];
             this.failingNodeName = (String) args[2];
